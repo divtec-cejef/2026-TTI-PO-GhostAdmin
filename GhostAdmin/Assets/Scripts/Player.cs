@@ -6,16 +6,15 @@ public class Player : MonoBehaviour
     public Rigidbody2D rb;
     public float speed;
     public LayerMask grondLayer;
-    float horizontal;
-
+    Vector2 movement;
 
     private void FixedUpdate()
     {
-        rb.linearVelocity = new Vector2(horizontal * speed, rb.linearVelocity.y);
+        rb.linearVelocity = movement * speed;
     }
 
     public void Move(InputAction.CallbackContext context)
     {
-        horizontal = context.ReadValue<Vector2>().x;
+        movement = context.ReadValue<Vector2>(); // x = horizontal, y = vertical
     }
 }
