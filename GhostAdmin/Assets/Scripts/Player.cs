@@ -1,4 +1,5 @@
 using Mirror;
+using Unity.Cinemachine;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
@@ -12,11 +13,10 @@ public class Player : NetworkBehaviour
     SpriteRenderer sr;
     Animator animator;
 
-    // État visuel partagé : modifié sur le serveur, diffusé à tous les clients
     [SyncVar(hook = nameof(OnFacingLeftChanged))] bool facingLeft;
     [SyncVar(hook = nameof(OnAnimSpeedChanged))] float animSpeed;
 
-    void Awake()   // Awake et pas Start : Mirror peut appeler les hooks avant Start
+    void Awake()
     {
         sr = GetComponent<SpriteRenderer>();
         animator = GetComponent<Animator>();
@@ -24,46 +24,43 @@ public class Player : NetworkBehaviour
 
     public override void OnStartLocalPlayer()
     {
-        GetComponent<PlayerInput>().enabled = true;   // seul MON personnage écoute le clavier
+        GetComponent<PlayerInput>().enabled = true;
 
-        // La caméra de la scène suit MON personnage
-        CameraFollow follow = Camera.main != null ? Camera.main.GetComponent<CameraFollow>() : null;
-        if (follow != null)
-            follow.target = transform;
+        var vcam = FindObjectOfType<CinemachineCamera>();
+        if (vcam != null)
+            vcam.Target.TrackingTarget = transform;
         else
-            Debug.LogWarning("Pas de CameraFollow sur la Main Camera : la caméra ne suivra pas le joueur.");
+            Debug.LogWarning("Pas de CinemachineCamera dans la scène !");
     }
 
     public override void OnStartClient()
     {
         if (!isLocalPlayer)
-            rb.bodyType = RigidbodyType2D.Kinematic;  // les autres sont placés par le réseau, pas par la physique
+            rb.bodyType = RigidbodyType2D.Kinematic;
     }
 
-    // Appelé par le PlayerInput (Unity Event Player/Move)
     public void Move(InputAction.CallbackContext ctx)
     {
         if (!isLocalPlayer) return;
         moveInput = ctx.ReadValue<Vector2>();
 
-        bool left = sr.flipX;                 // par défaut on garde l'orientation actuelle
+        bool left = sr.flipX;
         if (moveInput.x > 0) left = false;
         else if (moveInput.x < 0) left = true;
 
         float spd = moveInput.magnitude;
 
-        ApplyVisuals(left, spd);   // tout de suite chez moi, sans attendre le réseau
-        CmdSetVisuals(left, spd);  // et on prévient le serveur pour les autres
+        ApplyVisuals(left, spd);
+        CmdSetVisuals(left, spd);
     }
 
-    [Command]   // exécuté sur le serveur, à la demande du joueur propriétaire
+    [Command]
     void CmdSetVisuals(bool left, float spd)
     {
-        facingLeft = left;   // modifier une SyncVar côté serveur = envoyée à tous les clients
+        facingLeft = left;
         animSpeed = spd;
     }
 
-    // Hooks : appelés sur chaque client quand la SyncVar change
     void OnFacingLeftChanged(bool oldValue, bool newValue) => sr.flipX = newValue;
     void OnAnimSpeedChanged(float oldValue, float newValue) => animator.SetFloat("Speed", newValue);
 
