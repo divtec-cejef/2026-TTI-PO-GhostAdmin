@@ -16,11 +16,13 @@ public class Player : NetworkBehaviour
     [SyncVar(hook = nameof(OnFacingLeftChanged))] bool facingLeft;
     [SyncVar(hook = nameof(OnAnimSpeedChanged))] float animSpeed;
 
-    void Awake()
-    {
-        sr = GetComponent<SpriteRenderer>();
-        animator = GetComponent<Animator>();
-    }
+void Awake()
+{
+    sr = GetComponent<SpriteRenderer>();
+    animator = GetComponent<Animator>();
+    Debug.Log("Animator trouvé : " + animator);
+    Debug.Log("Controller : " + animator.runtimeAnimatorController);
+}
 
     public override void OnStartLocalPlayer()
     {
@@ -42,16 +44,8 @@ public class Player : NetworkBehaviour
     public void Move(InputAction.CallbackContext ctx)
     {
         if (!isLocalPlayer) return;
+
         moveInput = ctx.ReadValue<Vector2>();
-
-        bool left = sr.flipX;
-        if (moveInput.x > 0) left = false;
-        else if (moveInput.x < 0) left = true;
-
-        float spd = moveInput.magnitude;
-
-        ApplyVisuals(left, spd);
-        CmdSetVisuals(left, spd);
     }
 
     [Command]
@@ -67,7 +61,7 @@ public class Player : NetworkBehaviour
     void ApplyVisuals(bool left, float spd)
     {
         sr.flipX = left;
-        animator.SetFloat("Speed", spd);
+        animator.SetFloat("Speed", spd);  
     }
 
     void FixedUpdate()
