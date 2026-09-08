@@ -17,7 +17,7 @@ GameObject:
   - component: {fileID: 8251504681442193976}
   - component: {fileID: 3825196607970107266}
   - component: {fileID: 4404630255866630671}
-  m_Layer: 0
+  m_Layer: 3
   m_Name: player1
   m_TagString: Player
   m_Icon: {fileID: 0}
@@ -160,6 +160,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e6eceac871f3a5f49b0167eb83a9cd63, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Player
+  syncDirection: 0
+  syncMode: 0
+  syncInterval: 0
   rb: {fileID: 3994436601986214985}
   speed: 3
   grondLayer:
