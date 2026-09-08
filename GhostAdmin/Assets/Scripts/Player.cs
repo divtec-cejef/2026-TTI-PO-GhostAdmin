@@ -13,24 +13,10 @@ public class Player : NetworkBehaviour
     SpriteRenderer sr;
     Animator animator;
 
-    [SyncVar(hook = nameof(OnFacingLeftChanged))] bool facingLeft;
-    [SyncVar(hook = nameof(OnAnimSpeedChanged))] float animSpeed;
-
     void Awake()
     {
         sr = GetComponent<SpriteRenderer>();
         animator = GetComponent<Animator>();
-    }
-
-    public override void OnStartLocalPlayer()
-    {
-        GetComponent<PlayerInput>().enabled = true;
-
-        var vcam = FindObjectOfType<CinemachineCamera>();
-        if (vcam != null)
-            vcam.Target.TrackingTarget = transform;
-        else
-            Debug.LogWarning("Pas de CinemachineCamera dans la scène !");
     }
 
     public override void OnStartClient()
@@ -66,13 +52,20 @@ public class Player : NetworkBehaviour
 
     void ApplyVisuals(bool left, float spd)
     {
-        sr.flipX = left;
-        animator.SetFloat("Speed", spd);
+        rb.linearVelocity = movement * speed;
+        animator.SetFloat("Speed", movement.magnitude);
     }
 
-    void FixedUpdate()
+    public void OnMove(InputValue value)
     {
-        if (!isLocalPlayer) return;
-        rb.linearVelocity = moveInput * speed;
+        movement = value.Get<Vector2>();
+        if (movement.x > 0)
+        {
+            sr.flipX = false;
+        }
+        else if (movement.x < 0)
+        {
+            sr.flipX = true;
+        }
     }
 }
