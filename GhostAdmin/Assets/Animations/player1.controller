@@ -33,7 +33,7 @@ AnimatorState:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_Name: Course
-  m_Speed: 0.4
+  m_Speed: 0.35
   m_CycleOffset: 0
   m_Transitions:
   - {fileID: 1185134963084959490}
@@ -60,7 +60,7 @@ AnimatorState:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_Name: AnimationPerso
-  m_Speed: 0.2
+  m_Speed: 0.17
   m_CycleOffset: 0
   m_Transitions:
   - {fileID: 6773850714139293644}
