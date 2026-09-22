@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEngine.EventSystems;
+using UnityEngine.UI;
 
 public class DropZone : MonoBehaviour, IDropHandler
 {
@@ -12,12 +13,11 @@ public class DropZone : MonoBehaviour, IDropHandler
         if (file != null && file.GetComponent<DraggableFile>() != null)
         {
             filesDropped++;
-            Destroy(file);
+            file.GetComponent<Image>().color = new Color(0, 0, 0, 0); // invisible
+            file.GetComponent<DraggableFile>().enabled = false; // désactive le drag
 
             if (filesDropped >= filesNeeded)
-            {
                 Debug.Log("Mission terminée !");
-            }
         }
     }
 }
