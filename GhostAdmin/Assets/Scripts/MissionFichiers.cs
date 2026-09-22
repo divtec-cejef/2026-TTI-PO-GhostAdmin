@@ -1,3 +1,4 @@
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
@@ -34,18 +35,28 @@ public class MissionFichiers : MonoBehaviour
     void Start()
     {
         List<string> selection = new List<string>();
-
-        // Prend 4 noms suspects aléatoires
         selection.AddRange(nomsSuspects.OrderBy(x => Random.value).Take(nombreCorrompus));
-        // Prend 4 noms normaux aléatoires
         selection.AddRange(nomsNormaux.OrderBy(x => Random.value).Take(nombreFichiers - nombreCorrompus));
-        // Mélange tout
         selection = selection.OrderBy(x => Random.value).ToList();
 
         foreach (string nom in selection)
         {
             GameObject fichier = Instantiate(fichierPrefab, zoneFichiers);
             fichier.GetComponent<FichierData>().Init(nom, nomsSuspects.Contains(nom));
+        }
+
+        // Attend une frame que le Grid Layout Group place les fichiers
+        StartCoroutine(SauvegarderPositions());
+    }
+
+    IEnumerator SauvegarderPositions()
+    {
+        yield return null; // attend une frame
+        foreach (Transform child in zoneFichiers)
+        {
+            DraggableFile drag = child.GetComponent<DraggableFile>();
+            if (drag != null)
+                drag.startPosition = child.GetComponent<RectTransform>().anchoredPosition;
         }
     }
 }

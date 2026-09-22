@@ -6,7 +6,7 @@ public class DraggableFile : MonoBehaviour, IBeginDragHandler, IDragHandler, IEn
 {
     private RectTransform rectTransform;
     private CanvasGroup canvasGroup;
-    private Vector2 startPosition;
+    public Vector2 startPosition;
 
     void Awake()
     {
@@ -14,9 +14,14 @@ public class DraggableFile : MonoBehaviour, IBeginDragHandler, IDragHandler, IEn
         canvasGroup = GetComponent<CanvasGroup>();
     }
 
+    void Start()
+    {
+        // Sauvegarde la position initiale au démarrage
+        startPosition = rectTransform.anchoredPosition;
+    }
+
     public void OnBeginDrag(PointerEventData eventData)
     {
-        startPosition = rectTransform.anchoredPosition;
         canvasGroup.alpha = 0.6f;
         canvasGroup.blocksRaycasts = false;
     }
