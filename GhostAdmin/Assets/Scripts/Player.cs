@@ -76,6 +76,7 @@ public class Player : NetworkBehaviour
     void FixedUpdate()
     {
         if (!isLocalPlayer) return;
+        if (!GetComponent<PlayerRole>().matchStarted) { rb.linearVelocity = Vector2.zero; return; }
         rb.linearVelocity = moveInput * speed;
     }
 }
