@@ -1,6 +1,5 @@
 using UnityEngine;
 using UnityEngine.EventSystems;
-using UnityEngine.UI;
 
 public class DropZone : MonoBehaviour, IDropHandler
 {
@@ -10,48 +9,80 @@ public class DropZone : MonoBehaviour, IDropHandler
     public void OnDrop(PointerEventData eventData)
     {
         GameObject file = eventData.pointerDrag;
-        if (file == null) return;
+
+        if (file == null)
+            return;
+
+        Debug.Log("POUBELLE : fichier reçu = " + file.name);
 
         FichierData data = file.GetComponent<FichierData>();
-        if (data == null) return;
+
+        if (data == null)
+        {
+            Debug.LogError("POUBELLE : FichierData introuvable !");
+            return;
+        }
 
         if (data.estCorrompu)
         {
-            // Cache le fichier
-            file.GetComponent<Image>().color = new Color(0, 0, 0, 0);
-            file.GetComponentInChildren<TMPro.TextMeshProUGUI>().color = new Color(0, 0, 0, 0);
-            file.GetComponent<DraggableFile>().enabled = false;
+            Debug.Log("POUBELLE : fichier CORROMPU");
+
+            // Pour l'instant, on le désactive complètement
+            file.SetActive(false);
 
             filesDropped++;
+
             if (filesDropped >= nombreCorrompus)
+            {
                 Debug.Log("Mission terminée !");
+            }
         }
         else
         {
-            // Mauvais fichier — recommence
+            Debug.Log("POUBELLE : fichier NORMAL");
+
+            // Mauvais fichier : tout recommence
             filesDropped = 0;
             ReafficherFichiers();
-            Debug.Log("Mauvais fichier ! Recommence !");
         }
     }
 
     void ReafficherFichiers()
     {
-        foreach (Transform child in transform.parent.Find("ZoneFichiers"))
+        Transform zoneFichiers = transform.parent.Find("ZoneFichiers");
+
+        if (zoneFichiers == null)
         {
-            // Remet la couleur
-            child.GetComponent<Image>().color = Color.white;
-            child.GetComponentInChildren<TMPro.TextMeshProUGUI>().color = Color.white;
+            Debug.LogError("ZoneFichiers introuvable !");
+            return;
+        }
 
-            // Remet le CanvasGroup
-            CanvasGroup cg = child.GetComponent<CanvasGroup>();
-            cg.alpha = 1f;
-            cg.blocksRaycasts = true;
+        foreach (Transform child in zoneFichiers)
+        {
+            // Réaffiche le fichier
+            child.gameObject.SetActive(true);
 
-            // Réactive le drag
+            // Remet sa position initiale
             DraggableFile drag = child.GetComponent<DraggableFile>();
-            drag.enabled = true;
-            child.GetComponent<RectTransform>().anchoredPosition = drag.startPosition;
+
+            if (drag != null)
+            {
+                drag.enabled = true;
+
+                RectTransform rect = child.GetComponent<RectTransform>();
+
+                if (rect != null)
+                    rect.anchoredPosition = drag.startPosition;
+            }
+
+            // Réactive les raycasts
+            CanvasGroup cg = child.GetComponent<CanvasGroup>();
+
+            if (cg != null)
+            {
+                cg.alpha = 1f;
+                cg.blocksRaycasts = true;
+            }
         }
     }
 }

@@ -32,31 +32,81 @@ public class MissionFichiers : MonoBehaviour
         "trojan_horse.exe"
     };
 
-    void Start()
+    private bool fichiersCrees = false;
+
+    public void CreerFichiers()
     {
+        if (fichiersCrees)
+            return;
+
+        if (fichierPrefab == null)
+        {
+            Debug.LogError("ERREUR : fichierPrefab n'est pas assigné !");
+            return;
+        }
+
+        if (zoneFichiers == null)
+        {
+            Debug.LogError("ERREUR : zoneFichiers n'est pas assigné !");
+            return;
+        }
+
         List<string> selection = new List<string>();
-        selection.AddRange(nomsSuspects.OrderBy(x => Random.value).Take(nombreCorrompus));
-        selection.AddRange(nomsNormaux.OrderBy(x => Random.value).Take(nombreFichiers - nombreCorrompus));
-        selection = selection.OrderBy(x => Random.value).ToList();
+
+        selection.AddRange(
+            nomsSuspects
+                .OrderBy(x => Random.value)
+                .Take(nombreCorrompus)
+        );
+
+        selection.AddRange(
+            nomsNormaux
+                .OrderBy(x => Random.value)
+                .Take(nombreFichiers - nombreCorrompus)
+        );
+
+        selection = selection
+            .OrderBy(x => Random.value)
+            .ToList();
+
+        Debug.Log("Création de " + selection.Count + " fichiers.");
 
         foreach (string nom in selection)
         {
             GameObject fichier = Instantiate(fichierPrefab, zoneFichiers);
-            fichier.GetComponent<FichierData>().Init(nom, nomsSuspects.Contains(nom));
+
+            FichierData data = fichier.GetComponent<FichierData>();
+
+            if (data != null)
+            {
+                data.Init(nom, nomsSuspects.Contains(nom));
+            }
+            else
+            {
+                Debug.LogError("ERREUR : le prefab Fichier n'a pas FichierData !");
+            }
         }
 
-        // Attend une frame que le Grid Layout Group place les fichiers
+        fichiersCrees = true;
+
         StartCoroutine(SauvegarderPositions());
     }
 
     IEnumerator SauvegarderPositions()
     {
-        yield return null; // attend une frame
+        yield return null;
+
         foreach (Transform child in zoneFichiers)
         {
             DraggableFile drag = child.GetComponent<DraggableFile>();
+
             if (drag != null)
-                drag.startPosition = child.GetComponent<RectTransform>().anchoredPosition;
+            {
+                RectTransform rect = child.GetComponent<RectTransform>();
+
+                if (rect != null)
+                    drag.startPosition = rect.anchoredPosition;
+            }
         }
     }
 }

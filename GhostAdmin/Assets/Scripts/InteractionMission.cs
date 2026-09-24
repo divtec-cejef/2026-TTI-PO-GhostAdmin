@@ -1,68 +1,85 @@
 using UnityEngine;
 using Mirror;
+using UnityEngine.InputSystem;
 
 public class InteractionMission : NetworkBehaviour
 {
-    private GameObject panelMission;
-
-public float distanceInteraction = 2f;
+    public float distanceInteraction = 2f;
 
     private Transform objetQuete;
+    private GameObject panelMission;
+
     private bool missionOuverte = false;
 
     public override void OnStartLocalPlayer()
     {
         base.OnStartLocalPlayer();
 
+        Debug.Log("INTERACTION : joueur local détecté");
+
         GameObject bureau = GameObject.Find("Bureau");
 
         if (bureau != null)
         {
             objetQuete = bureau.transform;
-            Debug.Log("Bureau1 trouvé !");
+            Debug.Log("INTERACTION : Bureau trouvé");
         }
         else
         {
-            Debug.LogError("Bureau1 n'a pas été trouvé dans la scène !");
+            Debug.LogError("INTERACTION : Bureau INTROUVABLE");
         }
 
         panelMission = GameObject.Find("PanelMission");
 
         if (panelMission != null)
+        {
+            Debug.Log("INTERACTION : PanelMission trouvé");
             panelMission.SetActive(false);
+        }
         else
-            Debug.LogError("PanelMission n'a pas été trouvé dans la scène !");
+        {
+            Debug.LogError("INTERACTION : PanelMission INTROUVABLE");
+        }
     }
 
     void Update()
     {
-        if (!isLocalPlayer)
-            return;
+        if (!isLocalPlayer) return;
+        if (objetQuete == null) return;
+        if (panelMission == null) return;
 
-        if (objetQuete == null)
-            return;
-
-        float distance = Vector2.Distance(
-            transform.position,
-            objetQuete.position
-        );
-
-        if (distance <= distanceInteraction && Input.GetKeyDown(KeyCode.E))
+        if (Keyboard.current != null && Keyboard.current.eKey.wasPressedThisFrame)
         {
-            if (!missionOuverte)
+            float distance = Vector2.Distance(
+                transform.position,
+                objetQuete.position
+            );
+
+            Debug.Log("Distance au bureau : " + distance);
+
+            if (distance <= distanceInteraction)
+            {
                 OuvrirMission();
-            else
-                FermerMission();
+            }
         }
     }
 
     void OuvrirMission()
     {
-        if (panelMission == null)
-            return;
+        Debug.Log("OUVERTURE MISSION");
 
         panelMission.SetActive(true);
-        missionOuverte = true;
+
+        MissionFichiers mission = panelMission.GetComponent<MissionFichiers>();
+
+        if (mission != null)
+        {
+            mission.CreerFichiers();
+        }
+        else
+        {
+            Debug.LogError("MissionFichiers introuvable sur PanelMission !");
+        }
     }
 
     public void FermerMission()
