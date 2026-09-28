@@ -10,6 +10,6 @@ public class FichierData : MonoBehaviour
     {
         nomText.text = nom;
         estCorrompu = corrompu;
-        nomText.color = Color.white; // même couleur pour tous
+        nomText.color = Color.red; // même couleur pour tous
     }
 }

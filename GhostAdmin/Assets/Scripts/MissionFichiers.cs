@@ -32,12 +32,11 @@ public class MissionFichiers : MonoBehaviour
         "trojan_horse.exe"
     };
 
-    private bool fichiersCrees = false;
-
-    public void CreerFichiers()
+    void OnEnable()
     {
-        if (fichiersCrees)
-            return;
+        // Vide les anciens fichiers
+        foreach (Transform child in zoneFichiers)
+            Destroy(child.gameObject);
 
         if (fichierPrefab == null)
         {
@@ -69,8 +68,6 @@ public class MissionFichiers : MonoBehaviour
             .OrderBy(x => Random.value)
             .ToList();
 
-        Debug.Log("Création de " + selection.Count + " fichiers.");
-
         foreach (string nom in selection)
         {
             GameObject fichier = Instantiate(fichierPrefab, zoneFichiers);
@@ -78,16 +75,10 @@ public class MissionFichiers : MonoBehaviour
             FichierData data = fichier.GetComponent<FichierData>();
 
             if (data != null)
-            {
                 data.Init(nom, nomsSuspects.Contains(nom));
-            }
             else
-            {
                 Debug.LogError("ERREUR : le prefab Fichier n'a pas FichierData !");
-            }
         }
-
-        fichiersCrees = true;
 
         StartCoroutine(SauvegarderPositions());
     }
@@ -103,7 +94,6 @@ public class MissionFichiers : MonoBehaviour
             if (drag != null)
             {
                 RectTransform rect = child.GetComponent<RectTransform>();
-
                 if (rect != null)
                     drag.startPosition = rect.anchoredPosition;
             }
