@@ -54,6 +54,7 @@ public class GhostAdminNetworkManager : NetworkRoomManager
             loaded[i].ServerSetRole(i == pirate ? Role.Pirate : Role.Informaticien, briefingEnd);
 
         AssignQuests();
+        ServerRecount();            // barre à 0 / total dès le départ
         StartCoroutine(StartMatchAfterBriefing());
     }
 
@@ -87,9 +88,13 @@ public class GhostAdminNetworkManager : NetworkRoomManager
         }
     }
 
-    // Appelé par PlayerQuests à chaque quête validée. Point d'accroche du futur compteur global.
+    // Appelé par PlayerQuests à chaque quête validée.
     [Server]
-    public void ServerQuestCompleted()
+    public void ServerQuestCompleted() => ServerRecount();
+
+    // Recompte les quêtes de tous les informaticiens et pousse le résultat vers tous les clients (barre).
+    [Server]
+    void ServerRecount()
     {
         int done = 0, total = 0;
         foreach (var p in loaded)
@@ -97,10 +102,16 @@ public class GhostAdminNetworkManager : NetworkRoomManager
             if (p == null) continue;
             var q = p.GetComponent<PlayerQuests>();
             done += q.ServerDoneCount;
-            total += q.ServerTotalCount;
+            total += q.ServerTotalCount;      // le pirate n'a rien : il ne compte pas
         }
         Debug.Log($"[Serveur] Quêtes réalisées : {done}/{total}");
-        // → plus tard : barre de progression partagée (SyncVar) et victoire des informaticiens
+
+        var progress = FindAnyObjectByType<QuestProgress>();
+        if (progress != null) progress.ServerSet(done, total);
+        else Debug.LogWarning("[Serveur] Aucun objet GameState (QuestProgress) dans la scène Main : la barre de quêtes ne s'affichera pas.");
+
+        if (total > 0 && done >= total)
+            Debug.Log("[Serveur] Toutes les quêtes sont faites : victoire des informaticiens (écran de fin à venir)");
     }
 
     IEnumerator StartMatchAfterBriefing()
