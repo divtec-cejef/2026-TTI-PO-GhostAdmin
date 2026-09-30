@@ -1227,12 +1227,14 @@ MonoBehaviour:
   evaluationInterval: 3
   timeInterpolationGui: 0
   showRoomGUI: 0
-  minPlayers: 1
+  minPlayers: 3
   roomPlayerPrefab: {fileID: 6468821999863015822, guid: 519a16ad743ea694aa205b050551abb0, type: 3}
   RoomScene: Assets/Scenes/Salon.unity
   GameplayScene: Assets/Scenes/Main.unity
   _allPlayersReady: 0
   clientIndex: 0
+  briefingSeconds: 15
+  questsPerPlayer: 1
 --- !u!1 &1569611576
 GameObject:
   m_ObjectHideFlags: 0
