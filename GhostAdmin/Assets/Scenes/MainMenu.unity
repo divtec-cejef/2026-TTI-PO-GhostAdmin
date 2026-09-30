@@ -1233,6 +1233,8 @@ MonoBehaviour:
   GameplayScene: Assets/Scenes/Main.unity
   _allPlayersReady: 0
   clientIndex: 0
+  briefingSeconds: 15
+  questsPerPlayer: 1
 --- !u!1 &1569611576
 GameObject:
   m_ObjectHideFlags: 0
