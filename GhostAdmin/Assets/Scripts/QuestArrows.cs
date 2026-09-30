@@ -31,6 +31,7 @@ public class QuestArrows : MonoBehaviour
         canvas.renderMode = RenderMode.ScreenSpaceOverlay;
         canvas.sortingOrder = -5;                 // sous le briefing et sous les missions
         gameObject.AddComponent<CanvasScaler>();  // taille en pixels écran
+        gameObject.AddComponent<QuestBar>();      // la barre de progression, sur le même HUD
         fleche = MakeArrowSprite(32);
     }
 
