@@ -1129,37 +1129,6 @@ Transform:
   m_Children: []
   m_Father: {fileID: 459067096}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!1 &725258214
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 725258215}
-  m_Layer: 0
-  m_Name: QuesteFichiers
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &725258215
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 725258214}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -0.36187, y: 2.17, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 0}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &755310923
 GameObject:
   m_ObjectHideFlags: 0
@@ -2292,7 +2261,6 @@ GameObject:
   - component: {fileID: 1236128896}
   - component: {fileID: 1236128899}
   - component: {fileID: 1236128898}
-  - component: {fileID: 1236128897}
   m_Layer: 5
   m_Name: Trash_m1_0
   m_TagString: Untagged
@@ -2319,21 +2287,6 @@ RectTransform:
   m_AnchoredPosition: {x: 150, y: 0}
   m_SizeDelta: {x: 210, y: 200}
   m_Pivot: {x: 0.5, y: 0.5}
---- !u!114 &1236128897
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1236128895}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 204d826f0aa47f241ba0be063d811148, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::DropZone
-  nombreCorrompus: 4
-  textSucces: {fileID: 913418381}
-  panelMission: {fileID: 1302768504}
 --- !u!114 &1236128898
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2383,8 +2336,8 @@ GameObject:
   - component: {fileID: 1302768505}
   - component: {fileID: 1302768508}
   - component: {fileID: 1302768507}
-  - component: {fileID: 1302768509}
   - component: {fileID: 1302768510}
+  - component: {fileID: 1302768511}
   m_Layer: 5
   m_Name: PanelMissionFichier
   m_TagString: Untagged
@@ -2452,22 +2405,6 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1302768504}
   m_CullTransparentMesh: 0
---- !u!114 &1302768509
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1302768504}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: fd250bde8034072449b6349b0cfd787d, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::MissionFichiers
-  fichierPrefab: {fileID: 7173735484547697280, guid: 171b7f80765526a4baf7e04d52605b45, type: 3}
-  nombreFichiers: 8
-  nombreCorrompus: 4
-  zoneFichiers: {fileID: 1764590212}
 --- !u!114 &1302768510
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2482,6 +2419,45 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::MissionBridge
   textSucces: {fileID: 913418379}
   delaiFermeture: 1.5
+--- !u!114 &1302768511
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1302768504}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ac0e1401c639aa44b94b83031b6afef7, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::MissionCorbeille
+  zoneFichiers: {fileID: 1764590212}
+  corbeille: {fileID: 1236128896}
+  textSucces: {fileID: 913418379}
+  nombreFichiers: 8
+  nombreDangereux: 4
+  nomsDangereux:
+  - virus.exe
+  - cheval_de_troie.bat
+  - keylogger.dll
+  - ransomware.js
+  - spyware.vbs
+  - backdoor.sh
+  nomsSains:
+  - rapport.docx
+  - photos.zip
+  - budget.xlsx
+  - notes.txt
+  - contrat.pdf
+  - presentation.pptx
+  - musique.mp3
+  - cv.pdf
+  spriteFichier: {fileID: 8002429859252274289, guid: 69b8e0c5e91013f4ab6ae55bfab2bfbe, type: 3}
+  spriteDangereux: {fileID: 0}
+  tailleFichier: 200
+  espacement: 50
+  tailleTexte: 70
+  couleurTexte: {r: 1, g: 1, b: 1, a: 1}
 --- !u!1 &1411010397
 GameObject:
   m_ObjectHideFlags: 0
@@ -2493,6 +2469,8 @@ GameObject:
   - component: {fileID: 1411010398}
   - component: {fileID: 1411010400}
   - component: {fileID: 1411010399}
+  - component: {fileID: 1411010401}
+  - component: {fileID: 1411010402}
   m_Layer: 5
   m_Name: PanelMissionFichierSabotage
   m_TagString: Untagged
@@ -2559,6 +2537,47 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1411010397}
   m_CullTransparentMesh: 1
+--- !u!114 &1411010401
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1411010397}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ef8622e2baf009a459b1684fd30c4b1d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SabotageBridge
+--- !u!114 &1411010402
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1411010397}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3fe074998eea99142ad7c698797d7e2c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SabotageCorbeille
+  listeCorbeille: {fileID: 1691906969}
+  barreConfirmation: {fileID: 1892365218}
+  spriteFichier: {fileID: 8002429859252274289, guid: 69b8e0c5e91013f4ab6ae55bfab2bfbe, type: 3}
+  spriteSelectionne: {fileID: -4079721844582298155, guid: 534837f1d522f3647bb827ae2b1e8b61, type: 3}
+  nombreFichiers: 3
+  nomsFichiers:
+  - rapport.docx
+  - photos.zip
+  - budget.xlsx
+  - mdp.txt
+  tailleFichier: 160
+  espacement: 60
+  tailleTexte: 80
+  couleurTexte: {r: 1, g: 1, b: 1, a: 1}
+  decalageListe: {x: 0, y: 60}
+  exigerTousSelectionnes: 1
+  afficherCompteur: 1
 --- !u!1 &1485016227
 GameObject:
   m_ObjectHideFlags: 0
@@ -2869,11 +2888,83 @@ MonoBehaviour:
   questId: 1
   questTitle: Corbeille
   questPanel: {fileID: 1302768504}
+  sabotagePanel: {fileID: 1411010397}
   highlightTarget: {fileID: 1575303070}
   promptE: {fileID: 798150662}
   highlightColor: {r: 1, g: 0.92156863, b: 0.015686275, a: 1}
   outlineThickness: 1
   outlineGap: 1
+<<<<<<< Updated upstream
+=======
+--- !u!1 &1581205848
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1581205851}
+  - component: {fileID: 1581205850}
+  - component: {fileID: 1581205849}
+  m_Layer: 0
+  m_Name: GameState
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &1581205849
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1581205848}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: cc8b8f062c7faca47912fd8be269f8d2, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::QuestProgress
+  syncDirection: 0
+  syncMode: 0
+  syncInterval: 0
+  done: 0
+  total: 0
+  sabotageReadyAt: 0
+--- !u!114 &1581205850
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1581205848}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9b91ecbcc199f4492b9a91e820070131, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Mirror::Mirror.NetworkIdentity
+  sceneId: 3668611611
+  _assetId: 0
+  serverOnly: 0
+  visibility: 0
+  hasSpawned: 0
+--- !u!4 &1581205851
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1581205848}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+>>>>>>> Stashed changes
 --- !u!1 &1634598938
 GameObject:
   m_ObjectHideFlags: 0
@@ -3507,8 +3598,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 0, y: 0}
-  m_SizeDelta: {x: 600, y: 300}
+  m_AnchoredPosition: {x: 85, y: 0}
+  m_SizeDelta: {x: 1100, y: 300}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &1764590213
 MonoBehaviour:
@@ -3531,7 +3622,7 @@ MonoBehaviour:
   m_StartCorner: 0
   m_StartAxis: 0
   m_CellSize: {x: 130, y: 180}
-  m_Spacing: {x: 150, y: 50}
+  m_Spacing: {x: 150, y: 75}
   m_Constraint: 2
   m_ConstraintCount: 2
 --- !u!1 &1819596093
@@ -4952,4 +5043,8 @@ SceneRoots:
   - {fileID: 1212771470}
   - {fileID: 227585997}
   - {fileID: 755310926}
+<<<<<<< Updated upstream
   - {fileID: 725258215}
+=======
+  - {fileID: 1581205851}
+>>>>>>> Stashed changes

@@ -18,16 +18,18 @@ public class PlayerQuests : NetworkBehaviour
     public override void OnStartLocalPlayer()
     {
         Local = this;
-        QuestArrows.Ensure();   // contours jaunes + flèches au bord de l'écran, créés automatiquement
+        QuestArrows.Ensure();   // contours jaunes, flèches, barre : créés automatiquement
     }
 
     public bool IsAssigned(int id) => myAssigned.Contains(id);
     public bool IsDone(int id) => myDone.Contains(id);
-    public int MyDoneCount => myDone.Count;        // pour une future barre "1/3 quêtes"
+    public int MyDoneCount => myDone.Count;
     public int MyTotalCount => myAssigned.Count;
 
     public int ServerDoneCount => serverDone.Count;      // valeurs serveur (compteur global)
     public int ServerTotalCount => serverAssigned.Count;
+
+    GhostAdminNetworkManager Manager => (GhostAdminNetworkManager)NetworkManager.singleton;
 
     [Server]
     public void ServerAssign(List<int> ids)
@@ -43,7 +45,7 @@ public class PlayerQuests : NetworkBehaviour
         myAssigned.Clear(); myDone.Clear();
         foreach (var id in ids) myAssigned.Add(id);
         Debug.Log(ids.Length == 0
-            ? "[Quêtes] Reçues du serveur : AUCUNE (le serveur n'a trouvé aucun Interactable sur sa carte)"
+            ? "[Quêtes] Reçues du serveur : AUCUNE (pirate, ou aucun Interactable sur la carte du serveur)"
             : "[Quêtes] Reçues du serveur : " + string.Join(", ", ids));
     }
 
@@ -54,7 +56,7 @@ public class PlayerQuests : NetworkBehaviour
         if (!serverAssigned.Contains(id) || serverDone.Contains(id)) return;   // pas à lui, ou déjà faite : ignoré
         serverDone.Add(id);
         TargetQuestDone(id);
-        ((GhostAdminNetworkManager)NetworkManager.singleton).ServerQuestCompleted();
+        Manager.ServerQuestCompleted(this, id);
     }
 
     [TargetRpc]
@@ -62,5 +64,34 @@ public class PlayerQuests : NetworkBehaviour
     {
         myDone.Add(id);
         Debug.Log("[Quêtes] Quête " + id + " validée par le serveur");
+    }
+
+    // ---- Sabotage ----
+
+    // Le pirate demande un sabotage. Le serveur vérifie son rôle et décide.
+    [Command]
+    public void CmdSabotage() => Manager.ServerTrySabotage(this);
+
+    // Le serveur annule une quête de CE joueur (victime du sabotage) : elle redevient à faire.
+    [Server]
+    public void ServerCancelQuest(int id)
+    {
+        if (!serverDone.Remove(id)) return;
+        TargetQuestCancelled(id);
+    }
+
+    [TargetRpc]
+    void TargetQuestCancelled(int id)
+    {
+        myDone.Remove(id);
+        Debug.Log("[Quêtes] Quête " + id + " ANNULÉE par un sabotage : à refaire");
+        QuestBar.Notify("Sabotage ! Une de vos missions a été annulée : refaites-la.");
+    }
+
+    [TargetRpc]
+    public void TargetSabotageResult(bool ok, string message)
+    {
+        Debug.Log("[Quêtes] " + message);
+        QuestBar.Notify(message);
     }
 }

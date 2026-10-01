@@ -11,6 +11,10 @@ public class GhostAdminNetworkManager : NetworkRoomManager
     [Header("Ghost Admin")]
     [SerializeField] float briefingSeconds = 30f;   // durée des instructions (mets 5 pour tester)
     [SerializeField] int questsPerPlayer = 3;        // nombre de quêtes tirées pour chaque joueur
+    [SerializeField] float sabotageCooldown = 20f;   // secondes entre deux sabotages du pirate
+
+    // Historique des réussites, dans l'ordre : le sabotage annule la dernière.
+    readonly List<KeyValuePair<PlayerQuests, int>> completions = new List<KeyValuePair<PlayerQuests, int>>();
 
     readonly List<PlayerRole> loaded = new List<PlayerRole>();
     bool rolesAssigned;
@@ -19,6 +23,7 @@ public class GhostAdminNetworkManager : NetworkRoomManager
     public override void OnRoomServerPlayersReady()
     {
         loaded.Clear();
+        completions.Clear();
         rolesAssigned = false;
         ServerChangeScene(GameplayScene);
     }
@@ -47,7 +52,9 @@ public class GhostAdminNetworkManager : NetworkRoomManager
         rolesAssigned = true;
 
         // Tirage : 1 pirate, le reste informaticiens. Fait ici et nulle part ailleurs.
-        int pirate = Random.Range(0, loaded.Count);
+        // À un seul joueur (test dans l'éditeur), pas de pirate : sinon il n'aurait jamais de quête.
+        int pirate = loaded.Count >= 2 ? Random.Range(0, loaded.Count) : -1;
+        if (pirate < 0) Debug.Log("[Serveur] Un seul joueur : pas de pirate (mode test), il est informaticien");
         double briefingEnd = NetworkTime.time + briefingSeconds;
 
         for (int i = 0; i < loaded.Count; i++)
@@ -87,9 +94,60 @@ public class GhostAdminNetworkManager : NetworkRoomManager
         }
     }
 
+<<<<<<< Updated upstream
     // Appelé par PlayerQuests à chaque quête validée. Point d'accroche du futur compteur global.
     [Server]
     public void ServerQuestCompleted()
+=======
+    // Appelé par PlayerQuests à chaque quête validée : on la mémorise (pour le sabotage) et on recompte.
+    [Server]
+    public void ServerQuestCompleted(PlayerQuests player, int questId)
+    {
+        completions.Add(new KeyValuePair<PlayerQuests, int>(player, questId));
+        ServerRecount();
+    }
+
+    // Appelé par PlayerQuests quand le pirate valide son panneau de sabotage.
+    [Server]
+    public void ServerTrySabotage(PlayerQuests pirate)
+    {
+        var role = pirate.GetComponent<PlayerRole>();
+        if (role == null || role.ServerRole != Role.Pirate)
+        {
+            Debug.LogWarning($"[Serveur] Sabotage refusé : {pirate.name} n'est pas le pirate");
+            return;
+        }
+
+        var progress = FindAnyObjectByType<QuestProgress>();
+        if (progress != null && !progress.SabotagePret)
+        {
+            int reste = Mathf.CeilToInt((float)(progress.sabotageReadyAt - NetworkTime.time));
+            pirate.TargetSabotageResult(false, $"Sabotage indisponible : encore {reste} s");
+            return;
+        }
+
+        // On annule la dernière mission réalisée (par un joueur encore connecté)
+        for (int i = completions.Count - 1; i >= 0; i--)
+        {
+            var c = completions[i];
+            completions.RemoveAt(i);
+            if (c.Key == null) continue;
+
+            c.Key.ServerCancelQuest(c.Value);
+            if (progress != null) progress.sabotageReadyAt = NetworkTime.time + sabotageCooldown;
+            Debug.Log($"[Serveur] Sabotage : la quête {c.Value} de {c.Key.name} est annulée");
+            pirate.TargetSabotageResult(true, "Sabotage réussi : la dernière mission réalisée est annulée");
+            ServerRecount();
+            return;
+        }
+
+        pirate.TargetSabotageResult(false, "Rien à saboter : aucune mission n'a encore été réalisée");
+    }
+
+    // Recompte les quêtes de tous les informaticiens et pousse le résultat vers tous les clients (barre).
+    [Server]
+    void ServerRecount()
+>>>>>>> Stashed changes
     {
         int done = 0, total = 0;
         foreach (var p in loaded)

@@ -3,8 +3,8 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
-// SUR PanelMission. Le pont entre la mission de ton coéquipier et le système de quêtes.
-// Il ne touche pas au mini-jeu : il observe TextSucces, et quand il apparaît, il valide la quête
+// SUR PanelMission. Le pont entre la mission et le système de quêtes.
+// Il observe TextSucces, et quand il apparaît, il valide la quête
 // auprès du serveur puis referme le panneau. Échap referme sans valider.
 public class MissionBridge : MonoBehaviour
 {
@@ -12,6 +12,9 @@ public class MissionBridge : MonoBehaviour
     [SerializeField] float delaiFermeture = 1.5f;   // secondes d'affichage du succès avant fermeture
 
     static MissionBridge current;
+
+    // Appelé par MissionCorbeille pour désigner le texte de succès sans passer par l'Inspector.
+    public void Configurer(GameObject succes) => textSucces = succes;
 
     bool pret;                 // l'état de départ de TextSucces a été relevé
     bool done;                 // la réussite a été détectée
@@ -38,7 +41,7 @@ public class MissionBridge : MonoBehaviour
     void OnDisable()
     {
         // Le panneau a été fermé par le mini-jeu lui-même (bouton, script...) : on reste cohérent.
-        if (QuestSession.IsOpen)
+        if (QuestSession.IsOpen && !QuestSession.IsSabotage)
         {
             if (done) QuestSession.Complete();
             else QuestSession.Cancel();

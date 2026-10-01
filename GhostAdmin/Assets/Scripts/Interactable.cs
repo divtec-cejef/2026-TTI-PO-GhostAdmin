@@ -9,6 +9,7 @@ public class Interactable : MonoBehaviour
     public int questId = 1;                     // identifiant unique de la quête (1, 2, 3...)
     public string questTitle = "Quête";         // nom de la quête (pour le futur HUD)
     public GameObject questPanel;               // le panneau de la mission (PanelMission), DÉSACTIVÉ au départ
+    public GameObject sabotagePanel;            // le panneau du pirate (PanelMissionFichierSabotage), DÉSACTIVÉ au départ
 
     [Header("Visuel")]
     [SerializeField] SpriteRenderer highlightTarget;   // le sprite à entourer (vide = celui de cet objet)
