@@ -3,7 +3,8 @@ using UnityEngine;
 using UnityEngine.UI;
 
 // AUCUN OBJET À CRÉER : ajouté automatiquement au HUD (QuestHUD) par QuestArrows.
-// Barre en haut de l'écran : quêtes réalisées par tous les informaticiens / total.
+// Barre commune en haut de l'écran, chez tout le monde (informaticiens et pirate) :
+// quêtes réalisées par tous les informaticiens / total. Visible dès que l'état de la partie (GameState) est reçu.
 public class QuestBar : MonoBehaviour
 {
     // Réglages (l'objet est créé en code : modifie ici)
@@ -26,7 +27,7 @@ public class QuestBar : MonoBehaviour
     TMP_Text label;
     float affiche;      // fraction affichée (animée)
     float attenteDepuis = -1f;
-    bool avertissementFait;
+    bool avertissementFait, premiereFoisVisible;
 
     void Awake()
     {
@@ -114,13 +115,11 @@ public class QuestBar : MonoBehaviour
             message.gameObject.SetActive(false);
         }
 
-        var local = PlayerQuests.Local;
         var progress = QuestProgress.Instance;
-        var role = local != null ? local.GetComponent<PlayerRole>() : null;
-        bool partieCommencee = local != null && (role == null || role.matchStarted);
+        var local = PlayerQuests.Local;
 
-        // Aide au diagnostic : partie commencée mais aucun QuestProgress après 5 s → l'objet GameState manque
-        if (partieCommencee && progress == null)
+        // Aide au diagnostic : joueur en jeu mais aucun QuestProgress après 5 s → l'objet GameState manque
+        if (local != null && progress == null)
         {
             if (attenteDepuis < 0f) attenteDepuis = Time.time;
             else if (!avertissementFait && Time.time - attenteDepuis > 5f)
@@ -130,9 +129,11 @@ public class QuestBar : MonoBehaviour
             }
         }
 
-        bool visible = partieCommencee && progress != null;
+        // Visible dès que l'état de la partie est là : pour tout le monde, pirate compris, du briefing à la fin
+        bool visible = progress != null;
         if (racine.gameObject.activeSelf != visible) racine.gameObject.SetActive(visible);
         if (!visible) return;
+        if (!premiereFoisVisible) { premiereFoisVisible = true; Debug.Log("[Quêtes] Barre de quêtes affichée"); }
 
         float cible = progress.total > 0 ? Mathf.Clamp01((float)progress.done / progress.total) : 0f;
         affiche = Mathf.MoveTowards(affiche, cible, Time.deltaTime * 1.5f);    // remplissage animé

@@ -48,11 +48,11 @@ public static class QuestSession
         Debug.Log("[Quêtes] Panneau « " + panel.name + " » activé (actif dans la scène : " + panel.activeInHierarchy + ")");
     }
 
-    // Réussite : mission → le serveur valide la quête ; sabotage → le serveur annule la dernière mission réalisée.
+    // Réussite : mission → le serveur valide la quête ; sabotage → le serveur annule la mission réalisée À CET ENDROIT.
     public static void Complete()
     {
         if (!IsOpen) return;
-        if (IsSabotage) owner.CmdSabotage();
+        if (IsSabotage) owner.CmdSabotage(CurrentQuestId);
         else owner.CmdCompleteQuest(CurrentQuestId);
         Close();
     }
@@ -64,7 +64,7 @@ public static class QuestSession
     {
         IsOpen = false;
         IsSabotage = false;
-        panel.SetActive(false);
+        if (panel != null) panel.SetActive(false);
         Debug.Log("[Quêtes] Panneau fermé");
     }
 }

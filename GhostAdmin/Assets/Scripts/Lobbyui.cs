@@ -4,7 +4,7 @@ using Mirror;
 using TMPro;
 using UnityEngine;
 
-// Scène "Salon" (Room Scene) : liste des joueurs + bouton PRÊT.
+// Scène "Salon" (Room Scene) : liste des joueurs + bouton PRÊT + choix du personnage (panneau créé en code).
 public class LobbyUI : MonoBehaviour
 {
     static LobbyUI instance;
@@ -12,9 +12,18 @@ public class LobbyUI : MonoBehaviour
     [SerializeField] TMP_Text playerList;
     [SerializeField] TMP_Text readyButtonLabel;
 
+    [Header("Choix du personnage")]
+    [SerializeField] bool afficherSelecteur = true;
+    [SerializeField] CharacterSelectUI.Position positionSelecteur = CharacterSelectUI.Position.Droite;
+
     void Awake() => instance = this;
     void OnDestroy() { if (instance == this) instance = null; }
-    void Start() => Refresh();
+
+    void Start()
+    {
+        if (afficherSelecteur) CharacterSelectUI.Ensure(positionSelecteur);   // le panneau « PERSONNAGE », créé en code
+        Refresh();
+    }
 
     public static void RefreshIfOpen() { if (instance != null) instance.Refresh(); }
 
@@ -41,8 +50,10 @@ public class LobbyUI : MonoBehaviour
         var sb = new StringBuilder();
         foreach (var p in players)
         {
-            sb.Append(p.NomAffiche);                 // pseudo du menu, ou « Joueur N »
+            // Nom à la couleur de son personnage (pseudo du menu, ou « Joueur N »)
+            sb.Append("<color=").Append(Skins.Hex(p.skin)).Append('>').Append(p.NomAffiche).Append("</color>");
             if (p.isLocalPlayer) sb.Append(" (vous)");
+            if (Skins.Valide(p.skin)) sb.Append("  —  ").Append(Skins.Nom(p.skin));
             sb.AppendLine(p.readyToBegin ? "  —  PRÊT" : "  —  en attente");
 
             if (p.isLocalPlayer && readyButtonLabel != null)
