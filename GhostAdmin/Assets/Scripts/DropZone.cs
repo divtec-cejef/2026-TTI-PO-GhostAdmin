@@ -1,10 +1,14 @@
+using System.Collections;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
+using TMPro;
 
 public class DropZone : MonoBehaviour, IDropHandler
 {
     public int nombreCorrompus = 4;
+    public TextMeshProUGUI textSucces;
+    public GameObject panelMission;
     private int filesDropped = 0;
 
     public void OnDrop(PointerEventData eventData)
@@ -17,38 +21,39 @@ public class DropZone : MonoBehaviour, IDropHandler
 
         if (data.estCorrompu)
         {
-            // Cache le fichier
             file.GetComponent<Image>().color = new Color(0, 0, 0, 0);
             file.GetComponentInChildren<TMPro.TextMeshProUGUI>().color = new Color(0, 0, 0, 0);
             file.GetComponent<DraggableFile>().enabled = false;
 
             filesDropped++;
             if (filesDropped >= nombreCorrompus)
-                Debug.Log("Mission terminée !");
+                StartCoroutine(MissionReussie());
         }
         else
         {
-            // Mauvais fichier — recommence
             filesDropped = 0;
             ReafficherFichiers();
-            Debug.Log("Mauvais fichier ! Recommence !");
         }
+    }
+
+    IEnumerator MissionReussie()
+    {
+        textSucces.gameObject.SetActive(true);
+        yield return new WaitForSeconds(2f);
+
+        // Trouve le script InteractionMission et termine la mission
+        FindObjectOfType<InteractionMission>().TerminerMission();
     }
 
     void ReafficherFichiers()
     {
         foreach (Transform child in transform.parent.Find("ZoneFichiers"))
         {
-            // Remet la couleur
             child.GetComponent<Image>().color = Color.white;
             child.GetComponentInChildren<TMPro.TextMeshProUGUI>().color = Color.white;
-
-            // Remet le CanvasGroup
             CanvasGroup cg = child.GetComponent<CanvasGroup>();
             cg.alpha = 1f;
             cg.blocksRaycasts = true;
-
-            // Réactive le drag
             DraggableFile drag = child.GetComponent<DraggableFile>();
             drag.enabled = true;
             child.GetComponent<RectTransform>().anchoredPosition = drag.startPosition;
