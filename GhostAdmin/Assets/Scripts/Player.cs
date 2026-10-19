@@ -13,6 +13,7 @@ public class Player : NetworkBehaviour
     SpriteRenderer sr;
     Animator animator;
     PlayerRole role;
+    PlayerIdentity identity;
 
     // Dernières valeurs envoyées : on ne prévient le serveur que si quelque chose change.
     bool lastLeft;
@@ -26,6 +27,7 @@ public class Player : NetworkBehaviour
         sr = GetComponent<SpriteRenderer>();
         animator = GetComponent<Animator>();
         role = GetComponent<PlayerRole>();
+        identity = GetComponent<PlayerIdentity>();
     }
 
     public override void OnStartLocalPlayer()
@@ -52,8 +54,11 @@ public class Player : NetworkBehaviour
         moveInput = ctx.ReadValue<Vector2>();
     }
 
-    // Figé pendant le briefing et pendant une mission.
-    bool Frozen => (role != null && !role.matchStarted) || QuestSession.IsOpen;
+    // Figé pendant le briefing, pendant une mission, pendant le vote et le résultat, et une fois éjecté.
+    bool Frozen => (role != null && !role.matchStarted)
+                   || QuestSession.IsOpen
+                   || MatchFlow.Bloque
+                   || (identity != null && identity.elimine);
 
     void FixedUpdate()
     {

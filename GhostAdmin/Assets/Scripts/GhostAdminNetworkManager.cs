@@ -12,12 +12,20 @@ public class GhostAdminNetworkManager : NetworkRoomManager
     [SerializeField] float briefingSeconds = 30f;   // durée des instructions (mets 5 pour tester)
     [SerializeField] int questsPerPlayer = 3;        // nombre de quêtes tirées pour chaque joueur
     [SerializeField] float sabotageCooldown = 20f;   // secondes entre deux sabotages du pirate
+    // Le chrono de la partie, le vote et le résultat se règlent sur MatchFlow (objet GameState, scène Main).
 
     // Historique des réussites, dans l'ordre : le sabotage annule la dernière.
     readonly List<KeyValuePair<PlayerQuests, int>> completions = new List<KeyValuePair<PlayerQuests, int>>();
 
     readonly List<PlayerRole> loaded = new List<PlayerRole>();
     bool rolesAssigned;
+
+    // Lu par MatchFlow (vote, résultat) : les joueurs de la partie, et le pirate.
+    public List<PlayerRole> ServerPlayers => loaded;
+    public PlayerRole ServerPirate
+    {
+        get { foreach (var p in loaded) if (p != null && p.ServerRole == Role.Pirate) return p; return null; }
+    }
 
     // Tout le monde est PRÊT (et Min Players atteint) → le serveur lance, sans bouton Lancer.
     public override void OnRoomServerPlayersReady()
@@ -26,6 +34,18 @@ public class GhostAdminNetworkManager : NetworkRoomManager
         completions.Clear();
         rolesAssigned = false;
         ServerChangeScene(GameplayScene);
+    }
+
+    // Le joueur de jeu vient d'être créé pour ce client : il reçoit le pseudo et le numéro de son RoomPlayer.
+    public override bool OnRoomServerSceneLoadedForPlayer(NetworkConnectionToClient conn, GameObject roomPlayer, GameObject gamePlayer)
+    {
+        var rp = roomPlayer.GetComponent<GhostAdminRoomPlayer>();
+        var id = gamePlayer.GetComponent<PlayerIdentity>();
+        if (id == null)
+            Debug.LogWarning("[Serveur] Le prefab player1 n'a pas de composant PlayerIdentity : pas de noms ni de vote.");
+        else
+            id.ServerInit(rp != null ? rp.NomAffiche : "Joueur", rp != null ? rp.index : 0);
+        return true;
     }
 
     // Appelé par PlayerRole quand le client d'un joueur a fini de charger la scène de jeu.
@@ -159,7 +179,10 @@ public class GhostAdminNetworkManager : NetworkRoomManager
         else Debug.LogWarning("[Serveur] Aucun objet GameState (QuestProgress) dans la scène Main : la barre de quêtes ne s'affichera pas.");
 
         if (total > 0 && done >= total)
-            Debug.Log("[Serveur] Toutes les quêtes sont faites : victoire des informaticiens (écran de fin à venir)");
+        {
+            Debug.Log("[Serveur] Toutes les quêtes sont faites");
+            if (MatchFlow.Instance != null) MatchFlow.Instance.ServerQuetesTerminees();   // vote anticipé si l'option est cochée
+        }
     }
 
     IEnumerator StartMatchAfterBriefing()
@@ -167,6 +190,19 @@ public class GhostAdminNetworkManager : NetworkRoomManager
         yield return new WaitForSeconds(briefingSeconds);
         foreach (var p in loaded)
             if (p != null) p.ServerStartMatch();
-        // → ici : démarrer le chrono 3:00 (issue #9)
+
+        // Le chrono de la partie démarre (3:00 par défaut, réglable sur MatchFlow)
+        if (MatchFlow.Instance != null) MatchFlow.Instance.ServerStartMatch();
+        else Debug.LogWarning("[Serveur] Pas de MatchFlow : ajoute ce composant sur l'objet GameState de la scène Main pour avoir le chrono et le vote.");
+    }
+
+    // Appelé par MatchFlow à la fin du résultat : tout le monde revient au salon, prêt pour une nouvelle partie.
+    [Server]
+    public void ServerRetourSalon()
+    {
+        loaded.Clear();
+        completions.Clear();
+        rolesAssigned = false;
+        ServerChangeScene(RoomScene);    // Mirror remet les RoomPlayers, et « PRÊT » à zéro pour tout le monde
     }
 }

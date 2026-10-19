@@ -24,6 +24,7 @@ public class PlayerInteraction : NetworkBehaviour
     bool Valid(Interactable it)
     {
         if (QuestSession.IsOpen) return false;
+        if (!MatchFlow.EnPartie) return false;                       // chrono terminé, vote ou résultat : plus d'interaction
         if (Pirate)
         {
             var p = QuestProgress.Instance;

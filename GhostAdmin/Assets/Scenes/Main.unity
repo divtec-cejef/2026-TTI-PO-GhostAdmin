@@ -2918,6 +2918,7 @@ GameObject:
   - component: {fileID: 1581205851}
   - component: {fileID: 1581205850}
   - component: {fileID: 1581205849}
+  - component: {fileID: 1581205852}
   m_Layer: 0
   m_Name: GameState
   m_TagString: Untagged
@@ -2975,6 +2976,41 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1581205852
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1581205848}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ce12f499c4d330c46a4ba3dbb476f425, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::MatchFlow
+  syncDirection: 0
+  syncMode: 0
+  syncInterval: 0
+  dureePartie: 180
+  dureeVote: 45
+  dureeResultat: 12
+  finAnticipeeSiQuetesFaites: 0
+  voterPourSoiMeme: 0
+  voteAuHasardSiAbsent: 1
+  egaliteAuHasard: 0
+  portraits: []
+  phase: 0
+  finPartie: 0
+  finVote: 0
+  finResultat: 0
+  ejecteNetId: 0
+  ejecteNom: 
+  ejecteEtaitPirate: 0
+  egalite: 0
+  pirateNom: 
+  pirateGagne: 0
+  raison: 
+  detailVotes: 
 --- !u!1 &1634598938
 GameObject:
   m_ObjectHideFlags: 0

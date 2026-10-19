@@ -35,13 +35,13 @@ public class LobbyUI : MonoBehaviour
 
     void Refresh()
     {
-        var players = FindObjectsByType<GhostAdminRoomPlayer>(FindObjectsSortMode.None)
+        var players = FindObjectsByType<GhostAdminRoomPlayer>()
                       .OrderBy(p => p.index);
 
         var sb = new StringBuilder();
         foreach (var p in players)
         {
-            sb.Append("Joueur ").Append(p.index + 1);
+            sb.Append(p.NomAffiche);                 // pseudo du menu, ou « Joueur N »
             if (p.isLocalPlayer) sb.Append(" (vous)");
             sb.AppendLine(p.readyToBegin ? "  —  PRÊT" : "  —  en attente");
 

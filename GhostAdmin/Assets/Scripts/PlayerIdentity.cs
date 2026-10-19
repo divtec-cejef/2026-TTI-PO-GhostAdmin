@@ -1,0 +1,112 @@
+﻿using Mirror;
+using TMPro;
+using UnityEngine;
+
+// SUR LE PREFAB player1. Qui est ce joueur : son pseudo, son numéro (→ sa couleur) et s'il a été éjecté.
+// Affiche son nom au-dessus de sa tête (créé en code, rien à ajouter dans le prefab) et envoie son vote.
+public class PlayerIdentity : NetworkBehaviour
+{
+    public static PlayerIdentity Local { get; private set; }
+
+    // Une couleur par numéro de joueur (salon) : même couleur sur le nom en jeu et dans le vote.
+    public static readonly Color[] Couleurs =
+    {
+        new Color(0.95f, 0.30f, 0.30f),   // 1 rouge
+        new Color(0.35f, 0.60f, 1.00f),   // 2 bleu
+        new Color(0.35f, 0.85f, 0.40f),   // 3 vert
+        new Color(1.00f, 0.85f, 0.25f),   // 4 jaune
+        new Color(0.80f, 0.45f, 0.95f),   // 5 violet
+        new Color(0.30f, 0.90f, 0.90f),   // 6 cyan
+        new Color(1.00f, 0.60f, 0.20f),   // 7 orange
+        Color.white                        // 8 blanc
+    };
+    public static Color CouleurDe(int index) => Couleurs[Mathf.Abs(index) % Couleurs.Length];
+
+    [Header("Nom au-dessus de la tête")]
+    [SerializeField] bool afficherNom = true;
+    [SerializeField] float tailleNom = 0f;        // 0 = automatique (selon la taille du personnage)
+    [SerializeField] float hauteurNom = 0.15f;    // espace entre le haut du personnage et le nom (unités du monde)
+    [SerializeField] bool teinterPersonnage = false;   // true : le sprite prend aussi la couleur du joueur
+
+    [SyncVar(hook = nameof(NomChange))] public string nom = "";
+    [SyncVar(hook = nameof(IndexChange))] public int indexJoueur;
+    [SyncVar(hook = nameof(ElimineChange))] public bool elimine;
+
+    TextMeshPro etiquette;
+    SpriteRenderer sr;
+    Color couleurOrigine = Color.white;    // la couleur du sprite telle que réglée dans le prefab
+
+    public Color Couleur => CouleurDe(indexJoueur);
+
+    void Awake()
+    {
+        sr = GetComponent<SpriteRenderer>();
+        if (sr != null) couleurOrigine = sr.color;
+    }
+
+    public override void OnStartLocalPlayer() => Local = this;
+    public override void OnStartClient() { CreerEtiquette(); Rafraichir(); }
+    void OnDestroy() { if (Local == this) Local = null; }
+
+    // ---- Serveur ----
+
+    // Appelé par le NetworkManager à la création du joueur de jeu (depuis son RoomPlayer).
+    [Server]
+    public void ServerInit(string pseudo, int index)
+    {
+        nom = pseudo;
+        indexJoueur = index;
+        elimine = false;
+    }
+
+    [Server]
+    public void ServerEliminer() => elimine = true;
+
+    // Mon joueur vote pour la cible (netId). Le serveur vérifie tout (MatchFlow).
+    [Command]
+    public void CmdVoter(uint cible)
+    {
+        if (MatchFlow.Instance != null) MatchFlow.Instance.ServerReceiveVote(this, cible);
+    }
+
+    // ---- Client ----
+
+    void NomChange(string o, string n) => Rafraichir();
+    void IndexChange(int o, int n) => Rafraichir();
+    void ElimineChange(bool o, bool n) => Rafraichir();
+
+    void CreerEtiquette()
+    {
+        if (!afficherNom || etiquette != null) return;
+        var go = new GameObject("Nom");
+        go.transform.SetParent(transform, false);
+
+        float hauteurPerso = sr != null && sr.sprite != null ? sr.sprite.bounds.extents.y : 0.5f;
+        go.transform.localPosition = new Vector3(0f, hauteurPerso + hauteurNom, 0f);
+
+        etiquette = go.AddComponent<TextMeshPro>();
+        etiquette.alignment = TextAlignmentOptions.Bottom;            // le texte « pousse » vers le haut
+        etiquette.fontSize = tailleNom > 0f ? tailleNom : Mathf.Max(1.5f, hauteurPerso * 5f);
+        etiquette.fontStyle = FontStyles.Bold;
+        etiquette.textWrappingMode = TextWrappingModes.NoWrap;
+        etiquette.overflowMode = TextOverflowModes.Overflow;
+        etiquette.rectTransform.sizeDelta = new Vector2(4f, 0.5f);
+        etiquette.rectTransform.pivot = new Vector2(0.5f, 0f);
+        if (sr != null) { etiquette.sortingLayerID = sr.sortingLayerID; etiquette.sortingOrder = sr.sortingOrder + 50; }
+    }
+
+    void Rafraichir()
+    {
+        if (etiquette != null)
+        {
+            etiquette.text = elimine ? nom + " (éjecté)" : nom;
+            etiquette.color = elimine ? new Color(0.7f, 0.7f, 0.7f, 0.8f) : Couleur;
+        }
+        if (sr != null && (teinterPersonnage || elimine || sr.color != couleurOrigine))
+        {
+            var c = teinterPersonnage ? Couleur : couleurOrigine;
+            c.a = elimine ? 0.35f : couleurOrigine.a;                     // éjecté = fantôme
+            sr.color = c;
+        }
+    }
+}
