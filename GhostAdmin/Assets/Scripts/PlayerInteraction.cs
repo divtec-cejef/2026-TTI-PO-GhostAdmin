@@ -27,8 +27,10 @@ public class PlayerInteraction : NetworkBehaviour
         if (!MatchFlow.EnPartie) return false;                       // chrono terminé, vote ou résultat : plus d'interaction
         if (Pirate)
         {
+            // Pirate : seulement là où une mission a été réalisée (contour rouge), et si le sabotage est rechargé
             var p = QuestProgress.Instance;
-            return it.sabotagePanel != null && (p == null || p.SabotagePret);
+            if (it.sabotagePanel == null) return false;
+            return p == null || (p.SabotagePret && p.EstFaite(it.questId));
         }
         return quests.IsAssigned(it.questId) && !quests.IsDone(it.questId);
     }

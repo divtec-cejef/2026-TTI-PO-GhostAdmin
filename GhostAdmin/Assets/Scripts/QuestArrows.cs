@@ -2,15 +2,16 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 
-// AUCUN OBJET À CRÉER : ce HUD se crée tout seul chez le joueur local (voir PlayerQuests).
-// Pour chaque quête à faire : contour jaune sur l'objet, et une flèche au bord de l'écran
-// qui pointe vers lui quand il est hors champ.
+// AUCUN OBJET À CRÉER : ce HUD se crée tout seul chez le joueur local (voir PlayerQuests et QuestProgress).
+// Informaticien : pour chaque quête à faire, contour jaune sur l'objet et flèche au bord de l'écran quand il est hors champ.
+// Pirate : la même chose, en rouge, pour chaque endroit où une mission a été RÉALISÉE (là où il peut saboter).
 public class QuestArrows : MonoBehaviour
 {
     // Réglages (modifie ici : l'objet est créé en code, il n'apparaît pas dans l'Inspector)
     const float Marge = 40f;      // distance du bord de l'écran, en pixels
     const float Taille = 36f;     // taille de la flèche, en pixels
-    static readonly Color Couleur = Color.yellow;
+    static readonly Color CouleurInformaticien = Color.yellow;
+    static readonly Color CouleurPirate = new Color(1f, 0.3f, 0.25f);
 
     static QuestArrows instance;
 
@@ -31,7 +32,9 @@ public class QuestArrows : MonoBehaviour
         canvas.renderMode = RenderMode.ScreenSpaceOverlay;
         canvas.sortingOrder = -5;                 // sous le briefing et sous les missions
         gameObject.AddComponent<CanvasScaler>();  // taille en pixels écran
+        gameObject.AddComponent<QuestBar>();      // la barre de progression, sur le même HUD
         fleche = MakeArrowSprite(32);
+        Debug.Log("[Quêtes] HUD créé (barre, contours, flèches)");
     }
 
     void OnDestroy() { if (instance == this) instance = null; }
@@ -49,7 +52,10 @@ public class QuestArrows : MonoBehaviour
         }
 
         var role = local.GetComponent<PlayerRole>();
-        bool hudVisible = (role == null || role.matchStarted) && !QuestSession.IsOpen;
+        bool pirate = role != null && role.MyRole == Role.Pirate;
+        var progress = QuestProgress.Instance;
+        bool hudVisible = (role == null || role.matchStarted) && !QuestSession.IsOpen && MatchFlow.EnPartie;
+        Color couleur = pirate ? CouleurPirate : CouleurInformaticien;
 
         Vector2 centre = new Vector2(Screen.width, Screen.height) * 0.5f;
 
@@ -57,8 +63,11 @@ public class QuestArrows : MonoBehaviour
         {
             if (it == null) continue;
 
-            bool pending = local.IsAssigned(it.questId) && !local.IsDone(it.questId);
-            it.SetOutline(pending);                          // contour jaune tant que c'est à faire
+            // Informaticien : MA quête, pas encore faite. Pirate : une mission a été réalisée ici (sabotage possible).
+            bool pending = pirate
+                ? (progress != null && progress.EstFaite(it.questId) && it.sabotagePanel != null)
+                : (local.IsAssigned(it.questId) && !local.IsDone(it.questId));
+            it.SetOutline(pending, couleur);                 // contour tant que c'est à faire (ou à saboter)
 
             if (!pending || !hudVisible) { ShowArrow(it, false); continue; }
 
@@ -79,6 +88,7 @@ public class QuestArrows : MonoBehaviour
             var arrow = GetArrow(it);
             arrow.position = pos;
             arrow.rotation = Quaternion.Euler(0, 0, Mathf.Atan2(dir.y, dir.x) * Mathf.Rad2Deg);
+            arrow.GetComponent<Image>().color = couleur;
             arrow.gameObject.SetActive(true);
         }
     }
@@ -90,7 +100,7 @@ public class QuestArrows : MonoBehaviour
         go.transform.SetParent(transform, false);
         var img = go.AddComponent<Image>();
         img.sprite = fleche;
-        img.color = Couleur;
+        img.color = CouleurInformaticien;
         img.raycastTarget = false;
         rt = go.GetComponent<RectTransform>();
         rt.sizeDelta = new Vector2(Taille, Taille);

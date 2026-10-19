@@ -2,7 +2,8 @@
 
 // SUR L'OBJET DE LA CARTE (le bureau, le serveur, l'armoire...).
 // L'objet doit aussi avoir un BoxCollider2D coché "Is Trigger" : c'est la zone d'approche.
-// Le contour jaune est dessiné automatiquement (aucun sprite à fournir) tant que la quête est à faire.
+// Le contour est dessiné automatiquement (aucun sprite à fournir) : jaune pour l'informaticien tant que sa quête
+// est à faire, rouge pour le pirate là où une mission a été réalisée.
 public class Interactable : MonoBehaviour
 {
     [Header("Quête")]
@@ -81,12 +82,16 @@ public class Interactable : MonoBehaviour
         return col != null ? col.bounds : new Bounds(transform.position, Vector3.one);
     }
 
-    // Appelé par QuestArrows : contour jaune visible tant que c'est MA quête et qu'elle n'est pas faite.
-    public void SetOutline(bool on)
+    // Appelé par QuestArrows : contour visible ou non, dans la couleur de l'Inspector (Highlight Color).
+    public void SetOutline(bool on) => SetOutline(on, highlightColor);
+
+    // Même chose avec une couleur imposée (rouge pour le pirate).
+    public void SetOutline(bool on, Color couleur)
     {
+        if (on && outline == null) outline = CreateOutline();
+        if (outline != null && outline.color != couleur) outline.color = couleur;
         if (outlineOn == on) return;
         outlineOn = on;
-        if (on && outline == null) outline = CreateOutline();
         if (outline != null) outline.enabled = on;
     }
 

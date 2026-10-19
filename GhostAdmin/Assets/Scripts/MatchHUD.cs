@@ -138,7 +138,7 @@ public class MatchHUD : MonoBehaviour
         {
             var cand = flow.candidats[i];
             var carte = new Carte { netId = cand.netId };
-            Color couleur = PlayerIdentity.CouleurDe(cand.index);
+            Color couleur = CouleurCandidat(cand);
 
             // Cadre (couleur du joueur) puis fond
             carte.go = Boite("Carte " + cand.nom, cartesRacine, couleur, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f),
@@ -182,11 +182,17 @@ public class MatchHUD : MonoBehaviour
         }
     }
 
-    // L'image d'un joueur : le portrait assigné dans MatchFlow (par numéro de joueur), sinon le sprite de son personnage.
+    // La couleur d'un joueur : celle de son personnage ; à défaut, une couleur par numéro de joueur.
+    static Color CouleurCandidat(Candidat c) => Skins.Valide(c.skin) ? Skins.Couleur(c.skin) : PlayerIdentity.CouleurDe(c.index);
+
+    // L'image d'un joueur : le portrait assigné dans MatchFlow (par numéro de joueur), sinon son personnage immobile
+    // (planche de sa couleur), sinon le sprite actuel de son personnage.
     static Sprite PortraitPour(MatchFlow flow, Candidat c)
     {
         if (flow.portraits != null && c.index >= 0 && c.index < flow.portraits.Length && flow.portraits[c.index] != null)
             return flow.portraits[c.index];
+        var apercu = Skins.Apercu(c.skin);
+        if (apercu != null) return apercu;
         if (NetworkClient.spawned.TryGetValue(c.netId, out var identity) && identity != null)
         {
             var sr = identity.GetComponentInChildren<SpriteRenderer>();
@@ -234,7 +240,7 @@ public class MatchHUD : MonoBehaviour
 
             carte.bouton.interactable = votable && !jaiVote && monVote == 0;
             carte.etiquette.text = cand.elimine ? "ÉJECTÉ" : choisi ? "VOTÉ" : (!votable ? "(VOUS)" : "VOTER");
-            carte.cadre.color = choisi ? Jaune : PlayerIdentity.CouleurDe(cand.index);
+            carte.cadre.color = choisi ? Jaune : CouleurCandidat(cand);
             carte.boutonFond.color = choisi ? Jaune : FondBouton;
             carte.etiquette.color = choisi ? Color.black : Color.white;
         }

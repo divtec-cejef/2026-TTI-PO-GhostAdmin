@@ -31,12 +31,14 @@ public class PlayerIdentity : NetworkBehaviour
     [SyncVar(hook = nameof(NomChange))] public string nom = "";
     [SyncVar(hook = nameof(IndexChange))] public int indexJoueur;
     [SyncVar(hook = nameof(ElimineChange))] public bool elimine;
+    [SyncVar(hook = nameof(SkinChange))] public int skin = -1;      // personnage choisi dans le salon (Skins.Liste)
 
     TextMeshPro etiquette;
     SpriteRenderer sr;
     Color couleurOrigine = Color.white;    // la couleur du sprite telle que réglée dans le prefab
 
-    public Color Couleur => CouleurDe(indexJoueur);
+    // La couleur du joueur : celle de son personnage ; à défaut, une couleur par numéro de joueur.
+    public Color Couleur => Skins.Valide(skin) ? Skins.Couleur(skin) : CouleurDe(indexJoueur);
 
     void Awake()
     {
@@ -45,17 +47,18 @@ public class PlayerIdentity : NetworkBehaviour
     }
 
     public override void OnStartLocalPlayer() => Local = this;
-    public override void OnStartClient() { CreerEtiquette(); Rafraichir(); }
+    public override void OnStartClient() { CreerEtiquette(); AppliquerSkin(); Rafraichir(); }
     void OnDestroy() { if (Local == this) Local = null; }
 
     // ---- Serveur ----
 
     // Appelé par le NetworkManager à la création du joueur de jeu (depuis son RoomPlayer).
     [Server]
-    public void ServerInit(string pseudo, int index)
+    public void ServerInit(string pseudo, int index, int skinIndex)
     {
         nom = pseudo;
         indexJoueur = index;
+        skin = skinIndex;
         elimine = false;
     }
 
@@ -74,6 +77,15 @@ public class PlayerIdentity : NetworkBehaviour
     void NomChange(string o, string n) => Rafraichir();
     void IndexChange(int o, int n) => Rafraichir();
     void ElimineChange(bool o, bool n) => Rafraichir();
+    void SkinChange(int o, int n) { AppliquerSkin(); Rafraichir(); }
+
+    // Le personnage prend la couleur choisie : CharacterSkin (ajouté s'il manque) remplace les cases de l'animation.
+    void AppliquerSkin()
+    {
+        var cs = GetComponent<CharacterSkin>();
+        if (cs == null) cs = gameObject.AddComponent<CharacterSkin>();
+        cs.Appliquer(skin);
+    }
 
     void CreerEtiquette()
     {

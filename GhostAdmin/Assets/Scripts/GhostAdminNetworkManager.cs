@@ -42,9 +42,9 @@ public class GhostAdminNetworkManager : NetworkRoomManager
         var rp = roomPlayer.GetComponent<GhostAdminRoomPlayer>();
         var id = gamePlayer.GetComponent<PlayerIdentity>();
         if (id == null)
-            Debug.LogWarning("[Serveur] Le prefab player1 n'a pas de composant PlayerIdentity : pas de noms ni de vote.");
+            Debug.LogWarning("[Serveur] Le prefab player1 n'a pas de composant PlayerIdentity : pas de noms, de personnage ni de vote.");
         else
-            id.ServerInit(rp != null ? rp.NomAffiche : "Joueur", rp != null ? rp.index : 0);
+            id.ServerInit(rp != null ? rp.NomAffiche : "Joueur", rp != null ? rp.index : 0, rp != null ? rp.skin : -1);
         return true;
     }
 
@@ -120,12 +120,15 @@ public class GhostAdminNetworkManager : NetworkRoomManager
     public void ServerQuestCompleted(PlayerQuests player, int questId)
     {
         completions.Add(new KeyValuePair<PlayerQuests, int>(player, questId));
+        var progress = FindAnyObjectByType<QuestProgress>();
+        if (progress != null) progress.ServerAjouterFaite(questId);      // le pirate voit où une mission a été faite
         ServerRecount();
     }
 
-    // Appelé par PlayerQuests quand le pirate valide son panneau de sabotage.
+    // Appelé par PlayerQuests quand le pirate valide son panneau de sabotage à l'endroit de la quête questId.
+    // questId = -1 : la dernière mission réalisée, où qu'elle soit (ancien fonctionnement).
     [Server]
-    public void ServerTrySabotage(PlayerQuests pirate)
+    public void ServerTrySabotage(PlayerQuests pirate, int questId)
     {
         var role = pirate.GetComponent<PlayerRole>();
         if (role == null || role.ServerRole != Role.Pirate)
@@ -142,22 +145,33 @@ public class GhostAdminNetworkManager : NetworkRoomManager
             return;
         }
 
-        // On annule la dernière mission réalisée (par un joueur encore connecté)
+        // On annule la mission réalisée la plus récente à cet endroit (par un joueur encore connecté)
         for (int i = completions.Count - 1; i >= 0; i--)
         {
             var c = completions[i];
+            if (questId >= 0 && c.Value != questId) continue;
             completions.RemoveAt(i);
-            if (c.Key == null) continue;
+            if (c.Key == null)                                          // son auteur a quitté : on oublie cette réalisation
+            {
+                if (progress != null) progress.ServerRetirerFaite(c.Value);
+                continue;
+            }
 
             c.Key.ServerCancelQuest(c.Value);
-            if (progress != null) progress.sabotageReadyAt = NetworkTime.time + sabotageCooldown;
+            if (progress != null)
+            {
+                progress.ServerRetirerFaite(c.Value);
+                progress.sabotageReadyAt = NetworkTime.time + sabotageCooldown;
+            }
             Debug.Log($"[Serveur] Sabotage : la quête {c.Value} de {c.Key.name} est annulée");
-            pirate.TargetSabotageResult(true, "Sabotage réussi : la dernière mission réalisée est annulée");
+            pirate.TargetSabotageResult(true, "Sabotage réussi : la mission réalisée ici est annulée");
             ServerRecount();
             return;
         }
 
-        pirate.TargetSabotageResult(false, "Rien à saboter : aucune mission n'a encore été réalisée");
+        pirate.TargetSabotageResult(false, questId >= 0
+            ? "Rien à saboter ici : aucune mission réalisée à cet endroit"
+            : "Rien à saboter : aucune mission n'a encore été réalisée");
     }
 
     // Recompte les quêtes de tous les informaticiens et pousse le résultat vers tous les clients (barre).

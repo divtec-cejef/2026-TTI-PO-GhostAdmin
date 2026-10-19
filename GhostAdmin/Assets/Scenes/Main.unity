@@ -2498,7 +2498,7 @@ MonoBehaviour:
   listeCorbeille: {fileID: 1691906969}
   barreConfirmation: {fileID: 1892365218}
   spriteFichier: {fileID: 8002429859252274289, guid: 69b8e0c5e91013f4ab6ae55bfab2bfbe, type: 3}
-  spriteSelectionne: {fileID: -4079721844582298155, guid: 534837f1d522f3647bb827ae2b1e8b61, type: 3}
+  spriteSelectionne: {fileID: 0}
   nombreFichiers: 3
   nomsFichiers:
   - rapport.docx
@@ -2510,6 +2510,7 @@ MonoBehaviour:
   espacement: 60
   tailleTexte: 80
   couleurTexte: {r: 1, g: 1, b: 1, a: 1}
+  couleurSelection: {r: 1, g: 0.85, b: 0.2, a: 1}
   policeNoms: {fileID: 0}
   gererDisposition: 1
   tailleBouton: {x: 272, y: 48}
