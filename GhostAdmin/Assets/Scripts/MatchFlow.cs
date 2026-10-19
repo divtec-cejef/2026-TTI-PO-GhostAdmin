@@ -5,18 +5,6 @@ using UnityEngine;
 // SUR L'OBJET GameState DE LA SCÈNE Main (à côté de QuestProgress). Le déroulé d'une partie :
 //   Partie (chrono 3:00) → Vote (45 s, tout le monde vote) → Résultat (qui est éjecté, qui gagne) → retour au salon.
 // Le serveur décide de tout ; les clients ne font qu'afficher (MatchHUD, créé automatiquement).
-public enum PhasePartie : byte { Attente, Partie, Vote, Resultat }
-
-// Un joueur que l'on peut voter. Répliqué à tous (rien de secret : ni rôle, ni pour qui il a voté).
-public struct Candidat
-{
-    public uint netId;      // identifiant réseau de son joueur
-    public string nom;      // son pseudo
-    public int index;       // son numéro dans le salon (→ couleur, portrait)
-    public bool aVote;      // a-t-il déjà voté ?
-    public bool elimine;    // éjecté (ne peut plus voter ni être voté)
-}
-
 public class MatchFlow : NetworkBehaviour
 {
     public static MatchFlow Instance { get; private set; }
@@ -141,6 +129,7 @@ public class MatchFlow : NetworkBehaviour
                 netId = p.netId,
                 nom = id != null && !string.IsNullOrEmpty(id.nom) ? id.nom : "Joueur " + (i + 1),
                 index = id != null ? id.indexJoueur : i,
+                skin = id != null ? id.skin : -1,
                 aVote = false,
                 elimine = id != null && id.elimine
             });
@@ -272,4 +261,19 @@ public class MatchFlow : NetworkBehaviour
         foreach (var p in Manager.ServerPlayers) if (p != null && p.netId == netId) return p;
         return null;
     }
+}
+
+// Les types utilisés par MatchFlow, déclarés après la classe : Unity associe un fichier à la PREMIÈRE classe
+// qu'il contient quand le nom ne correspond pas, et cette classe doit être le MonoBehaviour.
+public enum PhasePartie : byte { Attente, Partie, Vote, Resultat }
+
+// Un joueur que l'on peut voter. Répliqué à tous (rien de secret : ni rôle, ni pour qui il a voté).
+public struct Candidat
+{
+    public uint netId;      // identifiant réseau de son joueur
+    public string nom;      // son pseudo
+    public int index;       // son numéro dans le salon (→ portrait)
+    public int skin;        // son personnage (Skins.Liste → couleur, aperçu)
+    public bool aVote;      // a-t-il déjà voté ?
+    public bool elimine;    // éjecté (ne peut plus voter ni être voté)
 }

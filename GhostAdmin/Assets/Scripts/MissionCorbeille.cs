@@ -236,6 +236,46 @@ public static class FichierUI
         taille = Mathf.Clamp(Mathf.Floor(taille), 24f, tailleMax);
     }
 
+    // Un cadre (contour carré) autour de l'icône d'un fichier, désactivé au départ : sert à montrer la sélection.
+    public static Image AjouterCadre(GameObject fichier, float taille, Color couleur, float marge = 6f, float epaisseur = 3f)
+    {
+        var go = new GameObject("Cadre");
+        go.transform.SetParent(fichier.transform, false);
+        go.transform.SetAsFirstSibling();                              // dessiné sous l'icône
+        var img = go.AddComponent<Image>();
+        img.sprite = SpriteCadre();
+        img.type = Image.Type.Sliced;                                  // le contour garde son épaisseur quelle que soit la taille
+        img.pixelsPerUnitMultiplier = 4f / epaisseur;                  // 4 px de bord dans le sprite → « epaisseur » px à l'écran
+        img.color = couleur;
+        img.raycastTarget = false;
+        img.enabled = false;
+        var rt = go.GetComponent<RectTransform>();
+        rt.anchorMin = rt.anchorMax = new Vector2(0.5f, 1f);           // même accroche que l'icône (en haut), un peu plus grand
+        rt.pivot = new Vector2(0.5f, 1f);
+        rt.anchoredPosition = new Vector2(0f, marge);
+        rt.sizeDelta = new Vector2(taille + 2f * marge, taille + 2f * marge);
+        return img;
+    }
+
+    // Sprite d'un carré vide (bord de 4 px, intérieur transparent), découpé en 9 pour s'étirer sans se déformer.
+    static Sprite cadre;
+    static Sprite SpriteCadre()
+    {
+        if (cadre != null) return cadre;
+        int n = 16, b = 4;
+        var tex = new Texture2D(n, n, TextureFormat.RGBA32, false) { filterMode = FilterMode.Point };
+        var px = new Color32[n * n];
+        for (int y = 0; y < n; y++)
+            for (int x = 0; x < n; x++)
+            {
+                bool bord = x < b || y < b || x >= n - b || y >= n - b;
+                px[y * n + x] = bord ? new Color32(255, 255, 255, 255) : new Color32(0, 0, 0, 0);
+            }
+        tex.SetPixels32(px); tex.Apply();
+        cadre = Sprite.Create(tex, new Rect(0, 0, n, n), new Vector2(0.5f, 0.5f), 100f, 0, SpriteMeshType.FullRect, new Vector4(b, b, b, b));
+        return cadre;
+    }
+
     // largeurNom : largeur disponible pour le nom (un nom trop long est automatiquement rétréci pour y tenir)
     public static GameObject Creer(Transform parent, string nom, Sprite sprite, float taille, float hauteurNom, float tailleTexte, Color couleurTexte,
                                    TMP_FontAsset police = null, float largeurNom = 0f)

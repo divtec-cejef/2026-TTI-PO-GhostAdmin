@@ -1,24 +1,24 @@
-using System.Collections.Generic;
+ï»¿using System.Collections.Generic;
 using Mirror;
 using UnityEngine;
 
-// SUR LE PREFAB player1. Les quêtes de CE joueur : décidées et validées par le serveur.
+// SUR LE PREFAB player1. Les quÃªtes de CE joueur : dÃ©cidÃ©es et validÃ©es par le serveur.
 public class PlayerQuests : NetworkBehaviour
 {
     public static PlayerQuests Local { get; private set; }
 
-    // Côté SERVEUR : la vérité. Jamais envoyé aux autres joueurs.
+    // CÃ´tÃ© SERVEUR : la vÃ©ritÃ©. Jamais envoyÃ© aux autres joueurs.
     readonly HashSet<int> serverAssigned = new HashSet<int>();
     readonly HashSet<int> serverDone = new HashSet<int>();
 
-    // Côté CLIENT propriétaire : copie locale reçue par TargetRpc (sert à surligner et afficher).
+    // CÃ´tÃ© CLIENT propriÃ©taire : copie locale reÃ§ue par TargetRpc (sert Ã  surligner et afficher).
     readonly HashSet<int> myAssigned = new HashSet<int>();
     readonly HashSet<int> myDone = new HashSet<int>();
 
     public override void OnStartLocalPlayer()
     {
         Local = this;
-        QuestArrows.Ensure();   // contours jaunes, flèches, barre : créés automatiquement
+        QuestArrows.Ensure();   // contours jaunes, flÃ¨ches, barre : crÃ©Ã©s automatiquement
     }
 
     public bool IsAssigned(int id) => myAssigned.Contains(id);
@@ -36,7 +36,7 @@ public class PlayerQuests : NetworkBehaviour
     {
         serverAssigned.Clear(); serverDone.Clear();
         foreach (var id in ids) serverAssigned.Add(id);
-        TargetReceiveQuests(ids.ToArray());   // envoyé au seul propriétaire
+        TargetReceiveQuests(ids.ToArray());   // envoyÃ© au seul propriÃ©taire
     }
 
     [TargetRpc]
@@ -45,15 +45,15 @@ public class PlayerQuests : NetworkBehaviour
         myAssigned.Clear(); myDone.Clear();
         foreach (var id in ids) myAssigned.Add(id);
         Debug.Log(ids.Length == 0
-            ? "[Quêtes] Reçues du serveur : AUCUNE (pirate, ou aucun Interactable sur la carte du serveur)"
-            : "[Quêtes] Reçues du serveur : " + string.Join(", ", ids));
+            ? "[QuÃªtes] ReÃ§ues du serveur : AUCUNE (pirate, ou aucun Interactable sur la carte du serveur)"
+            : "[QuÃªtes] ReÃ§ues du serveur : " + string.Join(", ", ids));
     }
 
-    // Le client annonce "j'ai fini la quête X". Le serveur vérifie avant d'y croire.
+    // Le client annonce "j'ai fini la quÃªte X". Le serveur vÃ©rifie avant d'y croire.
     [Command]
     public void CmdCompleteQuest(int id)
     {
-        if (!serverAssigned.Contains(id) || serverDone.Contains(id)) return;   // pas à lui, ou déjà faite : ignoré
+        if (!serverAssigned.Contains(id) || serverDone.Contains(id)) return;   // pas Ã  lui, ou dÃ©jÃ  faite : ignorÃ©
         serverDone.Add(id);
         TargetQuestDone(id);
         Manager.ServerQuestCompleted(this, id);
@@ -63,16 +63,16 @@ public class PlayerQuests : NetworkBehaviour
     void TargetQuestDone(int id)
     {
         myDone.Add(id);
-        Debug.Log("[Quêtes] Quête " + id + " validée par le serveur");
+        Debug.Log("[QuÃªtes] QuÃªte " + id + " validÃ©e par le serveur");
     }
 
     // ---- Sabotage ----
 
-    // Le pirate demande un sabotage. Le serveur vérifie son rôle et décide.
+    // Le pirate demande un sabotage Ã  l'endroit de la quÃªte questId (âˆ’1 = la derniÃ¨re mission rÃ©alisÃ©e, oÃ¹ qu'elle soit).
     [Command]
-    public void CmdSabotage() => Manager.ServerTrySabotage(this);
+    public void CmdSabotage(int questId) => Manager.ServerTrySabotage(this, questId);
 
-    // Le serveur annule une quête de CE joueur (victime du sabotage) : elle redevient à faire.
+    // Le serveur annule une quÃªte de CE joueur (victime du sabotage) : elle redevient Ã  faire.
     [Server]
     public void ServerCancelQuest(int id)
     {
@@ -84,14 +84,14 @@ public class PlayerQuests : NetworkBehaviour
     void TargetQuestCancelled(int id)
     {
         myDone.Remove(id);
-        Debug.Log("[Quêtes] Quête " + id + " ANNULÉE par un sabotage : à refaire");
-        QuestBar.Notify("Sabotage ! Une de vos missions a été annulée : refaites-la.");
+        Debug.Log("[QuÃªtes] QuÃªte " + id + " ANNULÃ‰E par un sabotage : Ã  refaire");
+        QuestBar.Notify("Sabotage ! Une de vos missions a Ã©tÃ© annulÃ©e : refaites-la.");
     }
 
     [TargetRpc]
     public void TargetSabotageResult(bool ok, string message)
     {
-        Debug.Log("[Quêtes] " + message);
+        Debug.Log("[QuÃªtes] " + message);
         QuestBar.Notify(message);
     }
 }

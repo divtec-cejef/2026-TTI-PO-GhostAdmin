@@ -27,6 +27,7 @@ public class SabotageCorbeille : MonoBehaviour
     [SerializeField] float espacement = 24f;
     [SerializeField] float tailleTexte = 14f;
     [SerializeField] Color couleurTexte = Color.white;
+    [SerializeField] Color couleurSelection = new Color(1f, 0.85f, 0.2f);   // cadre et nom d'un fichier sélectionné
     [SerializeField] TMP_FontAsset policeNoms;                // optionnel : police des noms (vide = police TMP par défaut)
 
     [Header("Disposition (placée par le script)")]
@@ -53,6 +54,8 @@ public class SabotageCorbeille : MonoBehaviour
     float HauteurNom => Mathf.Ceil(tailleTexte * 1.6f) + 6f;
 
     readonly List<Image> icones = new List<Image>();
+    readonly List<Image> cadres = new List<Image>();      // cadre jaune autour de l'icône sélectionnée (créé en code)
+    readonly List<TMP_Text> etiquettesNom = new List<TMP_Text>();
     readonly List<bool> selection = new List<bool>();
     Button boutonConfirmer;
     TMP_Text compteur;
@@ -185,6 +188,9 @@ public class SabotageCorbeille : MonoBehaviour
             bouton.transition = Selectable.Transition.None;
             bouton.onClick.AddListener(() => Basculer(index));
             icones.Add(go.transform.Find("Icone").GetComponent<Image>());
+            cadres.Add(FichierUI.AjouterCadre(go, taille, couleurSelection));
+            var nomTxt = go.transform.Find("Nom");
+            etiquettesNom.Add(nomTxt != null ? nomTxt.GetComponent<TMP_Text>() : null);
             selection.Add(false);
         }
     }
@@ -193,6 +199,8 @@ public class SabotageCorbeille : MonoBehaviour
     {
         foreach (var i in icones) if (i != null) Destroy(i.transform.parent.gameObject);
         icones.Clear();
+        cadres.Clear();
+        etiquettesNom.Clear();
         selection.Clear();
     }
 
@@ -200,10 +208,14 @@ public class SabotageCorbeille : MonoBehaviour
     {
         if (termine || i >= selection.Count) return;
         selection[i] = !selection[i];
+        bool sel = selection[i];
+        // Sélectionné = cadre autour de l'icône + nom en couleur. Sprite Selectionne (optionnel) remplace en plus l'icône.
         if (spriteSelectionne != null)
-            icones[i].sprite = selection[i] ? spriteSelectionne : (spriteFichier != null ? spriteFichier : MissionCorbeille.IconeParDefaut());
+            icones[i].sprite = sel ? spriteSelectionne : (spriteFichier != null ? spriteFichier : MissionCorbeille.IconeParDefaut());
         else
-            icones[i].color = selection[i] ? Color.yellow : Color.white;
+            icones[i].color = sel ? Color.Lerp(Color.white, couleurSelection, 0.35f) : Color.white;
+        if (cadres[i] != null) cadres[i].enabled = sel;
+        if (etiquettesNom[i] != null) etiquettesNom[i].color = sel ? couleurSelection : couleurTexte;
         MettreAJourCompteur();
     }
 
