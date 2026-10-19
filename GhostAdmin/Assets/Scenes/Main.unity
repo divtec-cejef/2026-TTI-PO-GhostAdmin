@@ -2455,9 +2455,11 @@ MonoBehaviour:
   spriteFichier: {fileID: 8002429859252274289, guid: 69b8e0c5e91013f4ab6ae55bfab2bfbe, type: 3}
   spriteDangereux: {fileID: 0}
   tailleFichier: 200
+  ajusterALaZone: 0
   espacement: 50
   tailleTexte: 70
   couleurTexte: {r: 1, g: 1, b: 1, a: 1}
+  policeNoms: {fileID: 0}
 --- !u!1 &1411010397
 GameObject:
   m_ObjectHideFlags: 0
@@ -2572,12 +2574,20 @@ MonoBehaviour:
   - budget.xlsx
   - mdp.txt
   tailleFichier: 160
+  ajusterALaZone: 1
   espacement: 60
   tailleTexte: 80
   couleurTexte: {r: 1, g: 1, b: 1, a: 1}
+  policeNoms: {fileID: 0}
+  gererDisposition: 1
+  tailleBouton: {x: 272, y: 48}
+  margeBouton: 150
+  marge: 16
+  texteBouton: 
   decalageListe: {x: 0, y: 60}
   exigerTousSelectionnes: 1
   afficherCompteur: 1
+  positionCompteur: 2
 --- !u!1 &1485016227
 GameObject:
   m_ObjectHideFlags: 0
@@ -2894,8 +2904,9 @@ MonoBehaviour:
   highlightColor: {r: 1, g: 0.92156863, b: 0.015686275, a: 1}
   outlineThickness: 1
   outlineGap: 1
-<<<<<<< Updated upstream
-=======
+  promptDroit: 1
+  promptAuDessus: 0
+  promptMarge: 0.2
 --- !u!1 &1581205848
 GameObject:
   m_ObjectHideFlags: 0
@@ -2964,7 +2975,6 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
->>>>>>> Stashed changes
 --- !u!1 &1634598938
 GameObject:
   m_ObjectHideFlags: 0
@@ -3622,7 +3632,7 @@ MonoBehaviour:
   m_StartCorner: 0
   m_StartAxis: 0
   m_CellSize: {x: 130, y: 180}
-  m_Spacing: {x: 150, y: 75}
+  m_Spacing: {x: 150, y: 50}
   m_Constraint: 2
   m_ConstraintCount: 2
 --- !u!1 &1819596093
@@ -5043,8 +5053,4 @@ SceneRoots:
   - {fileID: 1212771470}
   - {fileID: 227585997}
   - {fileID: 755310926}
-<<<<<<< Updated upstream
-  - {fileID: 725258215}
-=======
   - {fileID: 1581205851}
->>>>>>> Stashed changes

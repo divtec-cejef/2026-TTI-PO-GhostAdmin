@@ -28,12 +28,15 @@ public class MissionCorbeille : MonoBehaviour
     [Header("Apparence")]
     [SerializeField] Sprite spriteFichier;         // Fichier_m1 (vide = icône générée)
     [SerializeField] Sprite spriteDangereux;       // optionnel : vide = même icône, le joueur lit les noms
-    [SerializeField] float tailleFichier = 80f;    // taille de l'icône, en pixels
+    [SerializeField] float tailleFichier = 80f;    // taille de l'icône, en pixels (taille maximale si Ajuster A La Zone est coché)
+    [SerializeField] bool ajusterALaZone = false;  // coché : les icônes prennent toute la place de ZoneFichiers (jusqu'à Taille Fichier) sans déborder
     [SerializeField] float espacement = 24f;       // pixels entre deux fichiers
     [SerializeField] float tailleTexte = 14f;      // taille du nom sous l'icône
     [SerializeField] Color couleurTexte = Color.white;
+    [SerializeField] TMP_FontAsset policeNoms;     // optionnel : police des noms (vide = police TMP par défaut)
 
-    const float HauteurNom = 22f;                  // place réservée au nom sous l'icône
+    // Place réservée au nom sous l'icône : suit la taille du texte, le nom ne peut plus déborder.
+    float HauteurNom => Mathf.Ceil(tailleTexte * 1.6f) + 6f;
 
     readonly List<FichierGlissable> fichiers = new List<FichierGlissable>();
     int dangereuxRestants;
@@ -64,12 +67,16 @@ public class MissionCorbeille : MonoBehaviour
             if (layout != null) layout.enabled = false;             // on place les fichiers nous-mêmes
         }
         else Debug.LogWarning("[Mission] Champ Zone Fichiers vide sur " + name);
+
+        FichierUI.VerifierPolice(policeNoms);
     }
 
     void OnValidate()
     {
         nombreFichiers = Mathf.Max(1, nombreFichiers);
         nombreDangereux = Mathf.Clamp(nombreDangereux, 1, nombreFichiers);
+        tailleTexte = Mathf.Max(6f, tailleTexte);
+        if (couleurTexte.a < 0.05f) couleurTexte.a = 1f;    // un nom transparent ne sert à rien
     }
 
     // À chaque ouverture : la mission repart de zéro avec un nouveau tirage de fichiers.
@@ -96,11 +103,10 @@ public class MissionCorbeille : MonoBehaviour
         foreach (var nom in Tirer(Pool(nomsSains, NomsSainsParDefaut), total - danger, "fichier", ".txt")) tirage.Add(new KeyValuePair<string, bool>(nom, false));
         Melanger(tirage);
 
-        float pasX = tailleFichier + espacement;
-        float pasY = tailleFichier + HauteurNom + espacement;
-        float largeur = zoneFichiers.rect.width;
-        int colonnes = largeur > tailleFichier ? Mathf.FloorToInt((largeur + espacement) / pasX) : total;
-        colonnes = Mathf.Clamp(colonnes, 1, total);
+        FichierUI.CalculerGrille(total, zoneFichiers.rect.width, zoneFichiers.rect.height, tailleFichier, espacement, HauteurNom, ajusterALaZone,
+                                 out int colonnes, out float taille);
+        float pasX = taille + espacement;
+        float pasY = taille + HauteurNom + espacement;
         int lignes = Mathf.CeilToInt(total / (float)colonnes);
         Sprite spSain = spriteFichier != null ? spriteFichier : IconeParDefaut();
         Sprite spDanger = spriteDangereux != null ? spriteDangereux : spSain;
@@ -109,7 +115,7 @@ public class MissionCorbeille : MonoBehaviour
         {
             int c = i % colonnes, l = i / colonnes;
             bool dangereux = tirage[i].Value;
-            var go = FichierUI.Creer(zoneFichiers, tirage[i].Key, dangereux ? spDanger : spSain, tailleFichier, HauteurNom, tailleTexte, couleurTexte);
+            var go = FichierUI.Creer(zoneFichiers, tirage[i].Key, dangereux ? spDanger : spSain, taille, HauteurNom, tailleTexte, couleurTexte, policeNoms, pasX - 4f);
             go.GetComponent<RectTransform>().anchoredPosition = new Vector2((c - (colonnes - 1) / 2f) * pasX, ((lignes - 1) / 2f - l) * pasY);
             var f = go.AddComponent<FichierGlissable>();
             f.Init(zoneFichiers, transform, dangereux);
@@ -193,7 +199,46 @@ public class MissionCorbeille : MonoBehaviour
 // Fabrique un « fichier » d'interface : une icône avec son nom en dessous. Utilisé par la mission et le sabotage.
 public static class FichierUI
 {
-    public static GameObject Creer(Transform parent, string nom, Sprite sprite, float taille, float hauteurNom, float tailleTexte, Color couleurTexte)
+    // Avertit une seule fois si TextMeshPro n'a aucune police : sans police, aucun nom ne peut s'afficher.
+    static bool policeVerifiee;
+    public static void VerifierPolice(TMP_FontAsset police)
+    {
+        if (policeVerifiee) return;
+        policeVerifiee = true;
+        if (police != null || TMP_Settings.defaultFontAsset != null) return;
+        Debug.LogWarning("[Fichiers] Aucune police TextMeshPro trouvée : les noms ne s'afficheront pas. " +
+                         "Fais Window > TextMeshPro > Import TMP Essential Resources, ou assigne « Police Noms » dans l'Inspector.");
+    }
+
+    // Combien de colonnes, et quelle taille d'icône, pour n fichiers dans une zone largeur × hauteur.
+    // ajuster = true : la plus grande taille possible (jusqu'à tailleMax) pour que tout tienne dans la zone.
+    // ajuster = false : taille fixe = tailleMax, seules les colonnes dépendent de la largeur.
+    public static void CalculerGrille(int n, float largeur, float hauteur, float tailleMax, float espacement, float hauteurNom, bool ajuster,
+                                      out int colonnes, out float taille)
+    {
+        n = Mathf.Max(1, n);
+        if (!ajuster || largeur <= 0f || hauteur <= 0f)
+        {
+            taille = tailleMax;
+            colonnes = largeur > taille ? Mathf.FloorToInt((largeur + espacement) / (taille + espacement)) : n;
+            colonnes = Mathf.Clamp(colonnes, 1, n);
+            return;
+        }
+        colonnes = 1; taille = 0f;
+        for (int c = 1; c <= n; c++)
+        {
+            int l = Mathf.CeilToInt(n / (float)c);
+            float parLargeur = (largeur - (c - 1) * espacement) / c;
+            float parHauteur = (hauteur - (l - 1) * espacement) / l - hauteurNom;
+            float t = Mathf.Min(parLargeur, parHauteur);
+            if (t > taille) { taille = t; colonnes = c; }
+        }
+        taille = Mathf.Clamp(Mathf.Floor(taille), 24f, tailleMax);
+    }
+
+    // largeurNom : largeur disponible pour le nom (un nom trop long est automatiquement rétréci pour y tenir)
+    public static GameObject Creer(Transform parent, string nom, Sprite sprite, float taille, float hauteurNom, float tailleTexte, Color couleurTexte,
+                                   TMP_FontAsset police = null, float largeurNom = 0f)
     {
         var go = new GameObject("Fichier " + nom);
         go.transform.SetParent(parent, false);
@@ -216,22 +261,29 @@ public static class FichierUI
         icoRt.anchoredPosition = Vector2.zero;
         icoRt.sizeDelta = new Vector2(taille, taille);
 
-        // Le nom (en dessous)
+        // Le nom (en dessous). Une seule ligne, jamais coupée : un nom trop long est rétréci pour tenir
+        // dans largeurNom. (L'ancien mode « Ellipsis » faisait disparaître le nom entier dès qu'il ne tenait pas.)
         var txtGo = new GameObject("Nom");
         txtGo.transform.SetParent(go.transform, false);
         var txt = txtGo.AddComponent<TextMeshProUGUI>();
+        if (police != null) txt.font = police;
+        else if (txt.font == null && TMP_Settings.defaultFontAsset != null) txt.font = TMP_Settings.defaultFontAsset;
         txt.text = nom;
         txt.fontSize = tailleTexte;
+        txt.enableAutoSizing = true;
+        txt.fontSizeMax = tailleTexte;
+        txt.fontSizeMin = Mathf.Max(6f, tailleTexte * 0.5f);
         txt.color = couleurTexte;
         txt.alignment = TextAlignmentOptions.Center;
-        txt.overflowMode = TextOverflowModes.Ellipsis;
+        txt.textWrappingMode = TextWrappingModes.NoWrap;
+        txt.overflowMode = TextOverflowModes.Overflow;
         txt.raycastTarget = false;
         var txtRt = txtGo.GetComponent<RectTransform>();
         txtRt.anchorMin = new Vector2(0.5f, 0f);
         txtRt.anchorMax = new Vector2(0.5f, 0f);
         txtRt.pivot = new Vector2(0.5f, 0f);
         txtRt.anchoredPosition = Vector2.zero;
-        txtRt.sizeDelta = new Vector2(taille + 2f * 16f, hauteurNom);
+        txtRt.sizeDelta = new Vector2(largeurNom > 0f ? largeurNom : taille + 2f * 16f, hauteurNom);
         return go;
     }
 }

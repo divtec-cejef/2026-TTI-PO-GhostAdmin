@@ -5,7 +5,9 @@ using UnityEngine.UI;
 
 // SUR LE PANNEAU DE SABOTAGE (PanelMissionFichierSabotage). À l'ouverture, affiche les fichiers
 // « supprimés » (icône + nom) dans ListeCorbeille. Le pirate clique chaque fichier pour le sélectionner,
-// puis clique BarreConfirmation (toujours visible, au-dessus des fichiers) : le sabotage part au serveur.
+// puis clique BarreConfirmation : le sabotage part au serveur.
+// Le script place lui-même la barre (grande, en bas du panneau) et la liste des fichiers au-dessus :
+// rien ne peut se chevaucher. Décoche « Gerer Disposition » pour reprendre la main dans l'éditeur.
 public class SabotageCorbeille : MonoBehaviour
 {
     // ← Les noms des fichiers supprimés que le pirate restaure : les dangereux de MissionCorbeille.
@@ -20,22 +22,41 @@ public class SabotageCorbeille : MonoBehaviour
     [SerializeField] Sprite spriteSelectionne;      // FichierSelectionne (vide = teinte jaune)
     [SerializeField] int nombreFichiers = 3;                  // combien de fichiers supprimés afficher (= Nombre Dangereux de la mission)
     [SerializeField] string[] nomsFichiers = NomsParDefaut;   // pool de noms (vide = NomsParDefaut)
-    [SerializeField] float tailleFichier = 80f;
+    [SerializeField] float tailleFichier = 110f;              // taille maximale d'une icône, en pixels
+    [SerializeField] bool ajusterALaZone = true;              // les icônes prennent la place disponible (jusqu'à Taille Fichier), sans déborder
     [SerializeField] float espacement = 24f;
     [SerializeField] float tailleTexte = 14f;
     [SerializeField] Color couleurTexte = Color.white;
-    [SerializeField] Vector2 decalageListe = new Vector2(0f, 60f);   // décale la grille (vers le haut) pour ne pas couvrir la barre
+    [SerializeField] TMP_FontAsset policeNoms;                // optionnel : police des noms (vide = police TMP par défaut)
+
+    [Header("Disposition (placée par le script)")]
+    [SerializeField] bool gererDisposition = true;            // true = barre en bas, fichiers au-dessus, placés automatiquement
+    [SerializeField] Vector2 tailleBouton = new Vector2(272f, 48f);   // taille de la barre (272×48 = ton sprite 136×24 en 2×)
+    [SerializeField] float margeBouton = 30f;                 // distance entre le bas du panneau et la barre
+    [SerializeField] float marge = 16f;                       // marge autour de la liste des fichiers
+    [SerializeField] string texteBouton = "";                 // texte écrit sur la barre (vide = rien, si ton sprite a déjà son texte)
+    [SerializeField] Vector2 decalageListe = Vector2.zero;    // utilisé seulement si Gerer Disposition est décoché
 
     [Header("Barre de confirmation")]
     [SerializeField] bool exigerTousSelectionnes = true;              // false = un seul fichier suffit
-    [SerializeField] bool afficherCompteur = true;                    // « Sélectionnés : 2 / 4 » sous la barre
+    [SerializeField] bool afficherCompteur = true;                    // « Sélectionnés : 2 / 4 » (décoche pour ne rien afficher)
+    [SerializeField] PositionCompteur positionCompteur = PositionCompteur.SousLaBarre;
 
-    const float HauteurNom = 22f;
+    public enum PositionCompteur
+    {
+        SousLaBarre,        // petit texte juste sous la barre
+        AuDessusDeLaBarre,  // petit texte juste au-dessus de la barre
+        SurLaBarre          // écrit sur la barre elle-même, à la suite de Texte Bouton (ex. « CONFIRMER  2 / 4 »)
+    }
+
+    // Place réservée au nom sous l'icône : suit la taille du texte, le nom ne peut plus déborder.
+    float HauteurNom => Mathf.Ceil(tailleTexte * 1.6f) + 6f;
 
     readonly List<Image> icones = new List<Image>();
     readonly List<bool> selection = new List<bool>();
     Button boutonConfirmer;
     TMP_Text compteur;
+    TMP_Text etiquette;
     bool termine;
 
     void Awake()
@@ -50,7 +71,9 @@ public class SabotageCorbeille : MonoBehaviour
             if (boutonConfirmer == null) boutonConfirmer = barreConfirmation.gameObject.AddComponent<Button>();
             boutonConfirmer.transition = Selectable.Transition.None;
             boutonConfirmer.onClick.AddListener(Confirmer);
-            if (afficherCompteur) CreerCompteur();
+            bool compteurSurLaBarre = afficherCompteur && positionCompteur == PositionCompteur.SurLaBarre;
+            if (afficherCompteur && !compteurSurLaBarre) CreerCompteur();
+            if (!string.IsNullOrEmpty(texteBouton) || compteurSurLaBarre) CreerEtiquette();
         }
         else Debug.LogWarning("[Sabotage] Champ Barre Confirmation vide sur " + name);
 
@@ -62,11 +85,23 @@ public class SabotageCorbeille : MonoBehaviour
             if (layout != null) layout.enabled = false;
         }
         else Debug.LogWarning("[Sabotage] Champ Liste Corbeille vide sur " + name);
+
+        FichierUI.VerifierPolice(policeNoms);
+    }
+
+    void OnValidate()
+    {
+        nombreFichiers = Mathf.Max(1, nombreFichiers);
+        tailleTexte = Mathf.Max(6f, tailleTexte);
+        tailleFichier = Mathf.Max(24f, tailleFichier);
+        tailleBouton = new Vector2(Mathf.Max(40f, tailleBouton.x), Mathf.Max(16f, tailleBouton.y));
+        if (couleurTexte.a < 0.05f) couleurTexte.a = 1f;    // un nom transparent ne sert à rien
     }
 
     void OnEnable()
     {
         termine = false;
+        Disposer();
         CreerIcones();
         // La barre passe devant tout le reste du panneau, et reste pleinement visible
         if (barreConfirmation != null)
@@ -78,6 +113,38 @@ public class SabotageCorbeille : MonoBehaviour
     }
 
     void OnDisable() => DetruireIcones();
+
+    // Barre en bas du panneau, liste des fichiers dans tout l'espace au-dessus : aucun chevauchement possible.
+    void Disposer()
+    {
+        if (!gererDisposition) return;
+        var panneau = transform as RectTransform;
+        if (panneau == null) return;
+
+        float hauteurBarre = 0f;
+        if (barreConfirmation != null)
+        {
+            var b = barreConfirmation.rectTransform;
+            if (b.parent != panneau) b.SetParent(panneau, false);
+            b.anchorMin = b.anchorMax = new Vector2(0.5f, 0f);          // accrochée au bas du panneau, centrée
+            b.pivot = new Vector2(0.5f, 0f);
+            b.anchoredPosition = new Vector2(0f, margeBouton);
+            b.sizeDelta = tailleBouton;
+            barreConfirmation.preserveAspect = true;                     // le sprite n'est pas déformé
+            hauteurBarre = margeBouton + tailleBouton.y;
+            if (compteur != null && positionCompteur == PositionCompteur.AuDessusDeLaBarre) hauteurBarre += 24f;   // place pour le compteur
+        }
+
+        if (listeCorbeille != null)
+        {
+            if (listeCorbeille.parent != panneau) listeCorbeille.SetParent(panneau, false);
+            listeCorbeille.anchorMin = Vector2.zero;                     // étirée sur le panneau…
+            listeCorbeille.anchorMax = Vector2.one;
+            listeCorbeille.pivot = new Vector2(0.5f, 0.5f);
+            listeCorbeille.offsetMin = new Vector2(marge, hauteurBarre + marge);   // …sauf la bande de la barre, en bas
+            listeCorbeille.offsetMax = new Vector2(-marge, -marge);
+        }
+    }
 
     // n noms au hasard dans le pool (noms inventés s'il en manque)
     string[] Noms
@@ -100,20 +167,20 @@ public class SabotageCorbeille : MonoBehaviour
 
         string[] noms = Noms;
         int n = noms.Length;
-        float pasX = tailleFichier + espacement;
-        float pasY = tailleFichier + HauteurNom + espacement;
-        float largeur = listeCorbeille.rect.width;
-        int colonnes = largeur > tailleFichier ? Mathf.FloorToInt((largeur + espacement) / pasX) : n;
-        colonnes = Mathf.Clamp(colonnes, 1, n);
+        FichierUI.CalculerGrille(n, listeCorbeille.rect.width, listeCorbeille.rect.height, tailleFichier, espacement, HauteurNom, ajusterALaZone,
+                                 out int colonnes, out float taille);
+        float pasX = taille + espacement;
+        float pasY = taille + HauteurNom + espacement;
         int lignes = Mathf.CeilToInt(n / (float)colonnes);
+        Vector2 decalage = gererDisposition ? Vector2.zero : decalageListe;
         Sprite sp = spriteFichier != null ? spriteFichier : MissionCorbeille.IconeParDefaut();
 
         for (int i = 0; i < n; i++)
         {
             int c = i % colonnes, l = i / colonnes, index = i;
-            var go = FichierUI.Creer(listeCorbeille, noms[i], sp, tailleFichier, HauteurNom, tailleTexte, couleurTexte);
+            var go = FichierUI.Creer(listeCorbeille, noms[i], sp, taille, HauteurNom, tailleTexte, couleurTexte, policeNoms, pasX - 4f);
             var rt = go.GetComponent<RectTransform>();
-            rt.anchoredPosition = decalageListe + new Vector2((c - (colonnes - 1) / 2f) * pasX, ((lignes - 1) / 2f - l) * pasY);
+            rt.anchoredPosition = decalage + new Vector2((c - (colonnes - 1) / 2f) * pasX, ((lignes - 1) / 2f - l) * pasY);
             var bouton = go.AddComponent<Button>();
             bouton.transition = Selectable.Transition.None;
             bouton.onClick.AddListener(() => Basculer(index));
@@ -143,29 +210,69 @@ public class SabotageCorbeille : MonoBehaviour
     int NbSelectionnes { get { int k = 0; foreach (var s in selection) if (s) k++; return k; } }
     bool Pret => exigerTousSelectionnes ? (selection.Count > 0 && NbSelectionnes == selection.Count) : NbSelectionnes > 0;
 
+    // Texte écrit au centre de la barre (seulement si Texte Bouton n'est pas vide)
+    void CreerEtiquette()
+    {
+        var go = new GameObject("Etiquette");
+        go.transform.SetParent(barreConfirmation.transform, false);
+        etiquette = go.AddComponent<TextMeshProUGUI>();
+        if (policeNoms != null) etiquette.font = policeNoms;
+        etiquette.text = texteBouton;
+        etiquette.fontSize = tailleTexte + 4f;
+        etiquette.fontStyle = FontStyles.Bold;
+        etiquette.color = couleurTexte;
+        etiquette.alignment = TextAlignmentOptions.Center;
+        etiquette.textWrappingMode = TextWrappingModes.NoWrap;
+        etiquette.overflowMode = TextOverflowModes.Overflow;
+        etiquette.enableAutoSizing = true;
+        etiquette.fontSizeMax = tailleTexte + 4f;
+        etiquette.fontSizeMin = 8f;
+        etiquette.raycastTarget = false;
+        var rt = go.GetComponent<RectTransform>();
+        rt.anchorMin = Vector2.zero;                                    // remplit la barre
+        rt.anchorMax = Vector2.one;
+        rt.offsetMin = new Vector2(8f, 2f);
+        rt.offsetMax = new Vector2(-8f, -2f);
+    }
+
+    // « Sélectionnés : 2 / 4 », petit texte juste sous (ou juste au-dessus de) la barre
     void CreerCompteur()
     {
         var go = new GameObject("Compteur");
         go.transform.SetParent(barreConfirmation.transform, false);
         compteur = go.AddComponent<TextMeshProUGUI>();
+        if (policeNoms != null) compteur.font = policeNoms;
         compteur.fontSize = 12f;
         compteur.color = couleurTexte;
         compteur.alignment = TextAlignmentOptions.Center;
+        compteur.textWrappingMode = TextWrappingModes.NoWrap;
+        compteur.overflowMode = TextOverflowModes.Overflow;
         compteur.raycastTarget = false;
         var rt = go.GetComponent<RectTransform>();
-        rt.anchorMin = new Vector2(0.5f, 0f);
-        rt.anchorMax = new Vector2(0.5f, 0f);
-        rt.pivot = new Vector2(0.5f, 1f);
-        rt.anchoredPosition = new Vector2(0f, -4f);
-        rt.sizeDelta = new Vector2(240f, 18f);
+        bool dessus = positionCompteur == PositionCompteur.AuDessusDeLaBarre;
+        rt.anchorMin = rt.anchorMax = new Vector2(0.5f, dessus ? 1f : 0f);   // accroché au bord haut ou bas de la barre
+        rt.pivot = new Vector2(0.5f, dessus ? 0f : 1f);
+        rt.anchoredPosition = new Vector2(0f, dessus ? 4f : -4f);
+        rt.sizeDelta = new Vector2(320f, 18f);
     }
+
+    string Compte => exigerTousSelectionnes ? $"{NbSelectionnes} / {selection.Count}" : $"{NbSelectionnes}";
 
     void MettreAJourCompteur()
     {
-        if (compteur == null) return;
-        compteur.text = exigerTousSelectionnes
-            ? $"Sélectionnés : {NbSelectionnes} / {selection.Count}"
-            : $"Sélectionnés : {NbSelectionnes}";
+        if (!afficherCompteur) return;
+        if (positionCompteur == PositionCompteur.SurLaBarre)
+        {
+            if (etiquette != null) etiquette.text = string.IsNullOrEmpty(texteBouton) ? Compte : texteBouton + "  " + Compte;
+        }
+        else if (compteur != null) compteur.text = "Sélectionnés : " + Compte;
+    }
+
+    // Message quand le pirate clique trop tôt : au même endroit que le compteur
+    void AfficherMessage(string texte)
+    {
+        if (positionCompteur == PositionCompteur.SurLaBarre) { if (etiquette != null) etiquette.text = texte; }
+        else if (compteur != null) compteur.text = texte;
     }
 
     void Confirmer()
@@ -173,9 +280,7 @@ public class SabotageCorbeille : MonoBehaviour
         if (termine) return;
         if (!Pret)
         {
-            if (compteur != null) compteur.text = exigerTousSelectionnes
-                ? $"Sélectionne tous les fichiers ({NbSelectionnes} / {selection.Count})"
-                : "Sélectionne au moins un fichier";
+            AfficherMessage(exigerTousSelectionnes ? $"Sélectionne tous les fichiers ({Compte})" : "Sélectionne au moins un fichier");
             return;
         }
         termine = true;
