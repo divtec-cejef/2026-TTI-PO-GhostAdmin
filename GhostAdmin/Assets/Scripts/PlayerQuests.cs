@@ -19,6 +19,7 @@ public class PlayerQuests : NetworkBehaviour
     {
         Local = this;
         QuestArrows.Ensure();   // contours jaunes, flèches, barre : créés automatiquement
+        Minimap.Ensure();       // minimap en haut à gauche
     }
 
     public bool IsAssigned(int id) => myAssigned.Contains(id);
