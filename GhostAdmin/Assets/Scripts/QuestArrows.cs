@@ -42,7 +42,7 @@ public class QuestArrows : MonoBehaviour
     void Update()
     {
         var local = PlayerQuests.Local;
-        var cam = Camera.main != null ? Camera.main : FindAnyObjectByType<Camera>();
+        var cam = CameraDuJeu();
         if (local == null || cam == null) { HideAll(); return; }
 
         if (Time.time >= prochainScan)            // la liste des objets change rarement
@@ -91,6 +91,14 @@ public class QuestArrows : MonoBehaviour
             arrow.GetComponent<Image>().color = couleur;
             arrow.gameObject.SetActive(true);
         }
+    }
+
+    // La caméra qui filme le jeu (jamais celle de la minimap, qui rend dans une texture)
+    static Camera CameraDuJeu()
+    {
+        if (Camera.main != null && Camera.main.enabled) return Camera.main;
+        foreach (var c in FindObjectsByType<Camera>()) if (c.enabled && c.targetTexture == null) return c;
+        return null;
     }
 
     RectTransform GetArrow(Interactable it)

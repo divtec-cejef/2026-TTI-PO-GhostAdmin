@@ -24,6 +24,7 @@ public class QuestProgress : NetworkBehaviour
     {
         Instance = this;
         QuestArrows.Ensure();     // le HUD (barre, contours, flèches) existe dès que l'état de la partie arrive
+        Minimap.Ensure();         // la minimap en haut à gauche
     }
     void OnDestroy() { if (Instance == this) Instance = null; }
 
