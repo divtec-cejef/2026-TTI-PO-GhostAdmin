@@ -89,6 +89,7 @@ public class GhostAdminNetworkManager : NetworkRoomManager
     [Server]
     void AssignQuests()
     {
+        Interactable.ResoudreTous();                 // numéros de quête uniques, les mêmes chez tout le monde
         var ids = new List<int>();
         foreach (var it in FindObjectsByType<Interactable>())
             if (!ids.Contains(it.questId)) ids.Add(it.questId);
