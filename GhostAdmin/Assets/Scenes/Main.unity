@@ -1271,6 +1271,39 @@ MonoBehaviour:
   roleTitle: {fileID: 2084613716}
   tips: {fileID: 1666304776}
   countdown: {fileID: 31229222}
+  titreInformaticien: INFORMATICIEN
+  texteInformaticien: "Bonjour ing\xE9nieur informaticien !\nVotre travail commencera
+    dans quelques instants, en attendant voici quelques explications :\n \nNotre
+    \xE9cole a \xE9t\xE9 sabot\xE9e par un myst\xE9rieux individu. Vous avez donc
+    \xE9t\xE9 embauch\xE9 pour tout remettre en ordre. Attention, le syst\xE8me n'a
+    plus que quelques minutes avant d'\xEAtre d\xE9finitivement hors-service, vous
+    n'aurez pas beaucoup de temps pour tout restaurer !\n \n \nLes pannes \xE0 r\xE9parer
+    sont dispers\xE9es dans les diff\xE9rentes pi\xE8ces du b\xE2timents, nous avons
+    appel\xE9 3 informaticiens. Malheureusement, le pirate s'est cach\xE9 dans votre
+    \xE9quipe, nous craignons qu'il ne se contente pas de rester passif et sabote
+    de nouveau les postes\u2026\n \n \nVotre mission, si vous l'acceptez, sera de
+    r\xE9parer notre r\xE9seau et si vous le pouvez, d\xE9masquer cet imposteur afin
+    qu'il ne fasse plus jamais de d\xE9g\xE2ts. Si vous \xEAtes s\xFBr de votre choix,
+    r\xE9unissez vous \xE0 [endroit du vote] et voter pour la personne que vous suspectez,
+    attention \xE0 ne pas vous tromper et \xE0 \xE9liminer un coll\xE8gue par erreur.\n
+    \n \nLes commandes pour vous d\xE9placer sont les suivantes : \u2B05 A, \u2B06
+    W, \u2B07 S, \u27A1 D, sinon les fl\xE8ches en bas \xE0 droite de votre clavier
+    feront aussi l'affaire.\nPour interagir avec un objet, pressez E"
+  titrePirate: PIRATE
+  textePirate: "Bonjour pirate !\n \nTout ce qui est dis ici est strictement confidentiel,
+    PERSONNE NE DOIT LE VOIR OU L'ENTENDRE.\n \nVotre travail a d\xE9j\xE0 commenc\xE9,
+    vous vous \xEAtes infiltr\xE9 dans l'\xE9cole et l'avez sabot\xE9e. F\xE9licitation,
+    leur r\xE9seau n'en a plus pour longtemps avant de l\xE2cher !\n \nMalheureusement,
+    ils ont \xE9t\xE9 assez rapide pour appeler des ing\xE9nieurs informaticiens
+    \xE0 la rescousse avant que leur syst\xE8me ne soit d\xE9finitivement hors-service.
+    Il vous faut donc finir le travail, m\xEAlez vous \xE0 leur rang et sabotez leurs
+    efforts dans l'ombre afin de gagner la partie. Une derni\xE8re chose, un syst\xE8me
+    de vote \xE0 r\xE9cemment \xE9t\xE9 mis en place pour \xE9lire le coordinateur
+    de la section, il est donc tr\xE8s probable qu'il soit utilis\xE9 pour essayer
+    de vous d\xE9masquer alors restez discret.\n \nLes commandes pour vous d\xE9placer
+    sont les suivantes : \u2B05 A, \u2B06 W, \u2B07 S, \u27A1 D, sinon les fl\xE8ches
+    en bas \xE0 droite de votre clavier feront aussi l'affaire.\nPour interagir avec
+    un objet, pressez E"
 --- !u!4 &452914946
 Transform:
   m_ObjectHideFlags: 0
@@ -4590,15 +4623,21 @@ MonoBehaviour:
   dureePartie: 180
   dureeVote: 45
   dureeResultat: 12
+  dureeResultatReunion: 6
   finAnticipeeSiQuetesFaites: 0
   voterPourSoiMeme: 0
   voteAuHasardSiAbsent: 1
   egaliteAuHasard: 0
+  reunionsParJoueur: 1
+  reunionCooldown: 20
   portraits: []
   phase: 0
   finPartie: 0
   finVote: 0
   finResultat: 0
+  voteUrgence: 0
+  appelant: 
+  resultatFinal: 0
   ejecteNetId: 0
   ejecteNom: 
   ejecteEtaitPirate: 0
@@ -5241,8 +5280,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: -300, y: 65}
-  m_SizeDelta: {x: 200, y: 50}
+  m_AnchoredPosition: {x: 52.499992, y: -54.07048}
+  m_SizeDelta: {x: 905, y: 304.599}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &1666304776
 MonoBehaviour:
