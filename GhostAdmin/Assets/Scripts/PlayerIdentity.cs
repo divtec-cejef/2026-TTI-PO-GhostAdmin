@@ -72,6 +72,36 @@ public class PlayerIdentity : NetworkBehaviour
         if (MatchFlow.Instance != null) MatchFlow.Instance.ServerReceiveVote(this, cible);
     }
 
+    // Mon joueur appuie sur le bouton rouge : réunion d'urgence. Le serveur décide (MatchFlow).
+    [Command]
+    public void CmdReunion()
+    {
+        if (MatchFlow.Instance != null) MatchFlow.Instance.ServerReunion(this);
+    }
+
+    // Le serveur replace ce joueur (après un vote) : chez lui, qui commande ses déplacements, et sur le serveur.
+    [Server]
+    public void ServerTeleporter(Vector3 position)
+    {
+        Placer(position);
+        TargetTeleporter(position);
+    }
+
+    [TargetRpc]
+    void TargetTeleporter(Vector3 position) => Placer(position);
+
+    void Placer(Vector3 position)
+    {
+        var rb = GetComponent<Rigidbody2D>();
+        if (rb != null) { rb.linearVelocity = Vector2.zero; rb.position = position; }
+        transform.position = position;
+        Physics2D.SyncTransforms();
+    }
+
+    // Un message pour ce joueur seulement (sous la barre de quêtes).
+    [TargetRpc]
+    public void TargetMessage(string texte) => QuestBar.Notify(texte);
+
     // ---- Client ----
 
     void NomChange(string o, string n) => Rafraichir();

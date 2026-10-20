@@ -32,7 +32,7 @@ public class MatchHUD : MonoBehaviour
 
     // Vote
     GameObject votePanel;
-    TMP_Text voteCompte, voteSousTitre, voteEtat;
+    TMP_Text voteTitre, voteCompte, voteSousTitre, voteEtat;
     RectTransform cartesRacine;
     readonly List<Carte> cartes = new List<Carte>();
     uint monVote;
@@ -74,8 +74,8 @@ public class MatchHUD : MonoBehaviour
         votePanel = Boite("Vote", transform, FondOverlay, Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero);
         votePanel.GetComponent<Image>().raycastTarget = true;     // bloque tout ce qui est derrière : on ne peut que voter
 
-        var titre = Texte("Titre", votePanel.transform, "VOTE — Qui est le pirate ?", 34f, Jaune, FontStyles.Bold);
-        Placer(titre.rectTransform, new Vector2(0.5f, 1f), new Vector2(0f, -40f), new Vector2(900f, 50f));
+        voteTitre = Texte("Titre", votePanel.transform, "VOTE — Qui est le pirate ?", 34f, Jaune, FontStyles.Bold);
+        Placer(voteTitre.rectTransform, new Vector2(0.5f, 1f), new Vector2(0f, -40f), new Vector2(900f, 50f));
 
         voteCompte = Texte("Compte", votePanel.transform, "45", 40f, Color.white, FontStyles.Bold);
         Placer(voteCompte.rectTransform, new Vector2(0.5f, 1f), new Vector2(0f, -95f), new Vector2(300f, 50f));
@@ -213,6 +213,10 @@ public class MatchHUD : MonoBehaviour
 
     void MettreAJourVote(MatchFlow flow)
     {
+        voteTitre.text = flow.voteUrgence
+            ? "RÉUNION D'URGENCE" + (string.IsNullOrEmpty(flow.appelant) ? "" : " — appelée par " + flow.appelant)
+            : "VOTE FINAL — Qui est le pirate ?";
+        voteTitre.color = flow.voteUrgence ? Rouge : Jaune;
         float resteVote = flow.SecondesRestantes(flow.finVote);
         voteCompte.text = Mathf.CeilToInt(resteVote) + " s";
         voteCompte.color = resteVote <= 10f ? Rouge : Color.white;
@@ -265,6 +269,20 @@ public class MatchHUD : MonoBehaviour
         string sous = "";
         if (flow.ejecteNetId != 0)
             sous = flow.ejecteEtaitPirate ? flow.ejecteNom + " était le pirate !" : flow.ejecteNom + " n'était pas le pirate…";
+        int reste = Mathf.CeilToInt(flow.SecondesRestantes(flow.finResultat));
+
+        if (!flow.resultatFinal)
+        {
+            // Réunion d'urgence : pas de vainqueur, le pirate reste secret, la partie reprend autour du bouton
+            rSous.text = sous;
+            rVainqueur.text = "LA PARTIE CONTINUE";
+            rVainqueur.color = Jaune;
+            rRaison.text = flow.raison;
+            rVotes.text = string.IsNullOrEmpty(flow.detailVotes) ? "" : "Votes :   " + flow.detailVotes;
+            rRetour.text = "Reprise autour du bouton dans " + reste + " s";
+            return;
+        }
+
         if (!string.IsNullOrEmpty(flow.pirateNom)) sous += (sous.Length > 0 ? "\n" : "") + "Le pirate était " + flow.pirateNom + ".";
         else sous += (sous.Length > 0 ? "\n" : "") + "Pas de pirate dans cette partie (mode test).";
         rSous.text = sous;
@@ -273,7 +291,7 @@ public class MatchHUD : MonoBehaviour
         rVainqueur.color = flow.pirateGagne ? Rouge : Vert;
         rRaison.text = flow.raison;
         rVotes.text = string.IsNullOrEmpty(flow.detailVotes) ? "" : "Votes :   " + flow.detailVotes;
-        rRetour.text = "Retour au salon dans " + Mathf.CeilToInt(flow.SecondesRestantes(flow.finResultat)) + " s";
+        rRetour.text = "Retour au salon dans " + reste + " s";
     }
 
     // ---------------------------------------------------------------- boucle

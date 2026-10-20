@@ -176,13 +176,16 @@ public class GhostAdminNetworkManager : NetworkRoomManager
     }
 
     // Recompte les quêtes de tous les informaticiens et pousse le résultat vers tous les clients (barre).
+    // Un joueur éjecté ne compte plus (sinon ses quêtes restantes bloqueraient la victoire des informaticiens).
     [Server]
-    void ServerRecount()
+    public void ServerRecount()
     {
         int done = 0, total = 0;
         foreach (var p in loaded)
         {
             if (p == null) continue;
+            var id = p.GetComponent<PlayerIdentity>();
+            if (id != null && id.elimine) continue;
             var q = p.GetComponent<PlayerQuests>();
             done += q.ServerDoneCount;
             total += q.ServerTotalCount;      // le pirate n'a rien : il ne compte pas
