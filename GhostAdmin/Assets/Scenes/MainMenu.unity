@@ -1413,7 +1413,7 @@ MonoBehaviour:
   _allPlayersReady: 0
   clientIndex: 0
   briefingSeconds: 5
-  questsPerPlayer: 1
+  questsPerPlayer: 3
   sabotageCooldown: 20
 --- !u!1 &1569611576
 GameObject:

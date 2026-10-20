@@ -168,7 +168,7 @@ MonoBehaviour:
   syncMode: 0
   syncInterval: 0
   rb: {fileID: 3994436601986214985}
-  speed: 3
+  speed: 6
   grondLayer:
     serializedVersion: 2
     m_Bits: 0
@@ -446,3 +446,4 @@ MonoBehaviour:
   nom: 
   indexJoueur: 0
   elimine: 0
+  skin: -1
