@@ -171,6 +171,8 @@ public class Minimap : MonoBehaviour
         foreach (var it in FindObjectsByType<Interactable>())
             foreach (var r in it.GetComponentsInChildren<Renderer>(true))
                 if (r.enabled && (r.name == "Contour" || r.name == "E")) caches.Add(r);
+        foreach (var fov in FindObjectsByType<ChampDeVision>())                   // le noir du champ de vision ne doit pas être photographié
+            foreach (var r in fov.GetComponentsInChildren<Renderer>()) if (r.enabled) caches.Add(r);
         foreach (var r in caches) r.enabled = false;
 
         try
@@ -317,7 +319,8 @@ public class Minimap : MonoBehaviour
             if (camJeu != null && !p.elimine)
             {
                 Vector3 vp = camJeu.WorldToViewportPoint(p.transform.position);
-                vu = vp.z > 0f && vp.x >= 0f && vp.x <= 1f && vp.y >= 0f && vp.y <= 1f;
+                vu = vp.z > 0f && vp.x >= 0f && vp.x <= 1f && vp.y >= 0f && vp.y <= 1f
+                     && ChampDeVision.Voit(p.transform.position);          // et pas caché dans le noir ou derrière un mur
             }
             if (vu) { t.position = p.transform.position; t.vuA = Time.time; }
 

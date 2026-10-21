@@ -70,8 +70,9 @@ public class MatchFlow : NetworkBehaviour
     public override void OnStartClient() { Instance = this; MatchHUD.Ensure(); }
     void OnDestroy() { if (Instance == this) Instance = null; }
 
-    void OnValidate()
+    protected override void OnValidate()
     {
+        base.OnValidate();                                   // NetworkBehaviour a déjà un OnValidate : on le complète
         dureePartie = Mathf.Max(10f, dureePartie);
         dureeVote = Mathf.Max(5f, dureeVote);
         dureeResultat = Mathf.Max(3f, dureeResultat);

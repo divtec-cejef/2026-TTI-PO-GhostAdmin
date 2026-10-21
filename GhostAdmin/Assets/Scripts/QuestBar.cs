@@ -20,6 +20,7 @@ public class QuestBar : MonoBehaviour
     static readonly Color CouleurMessage = new Color(1f, 0.35f, 0.3f, 1f);
 
     TMP_Text message;
+    TMP_Text etatSabotage;      // pirate : « Sabotage : prêt » / « Sabotage dans 12 s », sous la barre
     float messageJusqua = -1f;
 
     RectTransform racine;
@@ -92,6 +93,22 @@ public class QuestBar : MonoBehaviour
         message.raycastTarget = false;
         msgGo.SetActive(false);
 
+        // État du sabotage (pirate seulement), juste à droite de la barre : « Sabotage : prêt » / « Sabotage dans 12 s »
+        var sabGo = new GameObject("EtatSabotage");
+        sabGo.transform.SetParent(transform, false);
+        var sabRect = sabGo.AddComponent<RectTransform>();
+        sabRect.anchorMin = new Vector2(0.5f + Largeur / 2f, 1f);
+        sabRect.anchorMax = new Vector2(0.5f + Largeur / 2f, 1f);
+        sabRect.pivot = new Vector2(0f, 1f);
+        sabRect.anchoredPosition = new Vector2(10f, -MargeHaut);
+        sabRect.sizeDelta = new Vector2(220f, Hauteur);
+        etatSabotage = sabGo.AddComponent<TextMeshProUGUI>();
+        etatSabotage.alignment = TextAlignmentOptions.Left;
+        etatSabotage.fontSize = 14f;
+        etatSabotage.fontStyle = FontStyles.Bold;
+        etatSabotage.raycastTarget = false;
+        sabGo.SetActive(false);
+
         instance = this;
         Debug.Log("[Quêtes] Barre de quêtes créée dans le HUD");
     }
@@ -134,6 +151,21 @@ public class QuestBar : MonoBehaviour
         if (racine.gameObject.activeSelf != visible) racine.gameObject.SetActive(visible);
         if (!visible) return;
         if (!premiereFoisVisible) { premiereFoisVisible = true; Debug.Log("[Quêtes] Barre de quêtes affichée"); }
+
+        // Pirate : où en est la recharge du sabotage
+        var role = local != null ? local.GetComponent<PlayerRole>() : null;
+        bool pirate = role != null && role.MyRole == Role.Pirate;
+        if (etatSabotage.gameObject.activeSelf != pirate) etatSabotage.gameObject.SetActive(pirate);
+        if (pirate)
+        {
+            if (progress.SabotagePret) { etatSabotage.text = "Sabotage : prêt"; etatSabotage.color = new Color(1f, 0.45f, 0.4f); }
+            else
+            {
+                int reste = Mathf.CeilToInt((float)(progress.sabotageReadyAt - Mirror.NetworkTime.time));
+                etatSabotage.text = $"Sabotage dans {Mathf.Max(0, reste)} s";
+                etatSabotage.color = new Color(0.75f, 0.75f, 0.78f);
+            }
+        }
 
         float cible = progress.total > 0 ? Mathf.Clamp01((float)progress.done / progress.total) : 0f;
         affiche = Mathf.MoveTowards(affiche, cible, Time.deltaTime * 1.5f);    // remplissage animé

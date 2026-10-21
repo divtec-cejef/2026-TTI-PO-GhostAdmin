@@ -46,7 +46,11 @@ public class PlayerIdentity : NetworkBehaviour
         if (sr != null) couleurOrigine = sr.color;
     }
 
-    public override void OnStartLocalPlayer() => Local = this;
+    public override void OnStartLocalPlayer()
+    {
+        Local = this;
+        ChampDeVision.Ensure(this);        // le noir autour de mon personnage, arrêté par les murs
+    }
     public override void OnStartClient() { CreerEtiquette(); AppliquerSkin(); Rafraichir(); }
     void OnDestroy() { if (Local == this) Local = null; }
 
