@@ -215,8 +215,8 @@ public class MatchHUD : MonoBehaviour
     {
         voteTitre.text = flow.voteUrgence
             ? "RÉUNION D'URGENCE" + (string.IsNullOrEmpty(flow.appelant) ? "" : " — appelée par " + flow.appelant)
-            : "VOTE FINAL — Qui est le pirate ?";
-        voteTitre.color = flow.voteUrgence ? Rouge : Jaune;
+            : (string.IsNullOrEmpty(flow.motifVote) ? "VOTE FINAL — Qui est le pirate ?" : flow.motifVote);
+        voteTitre.color = flow.voteUrgence ? Rouge : (string.IsNullOrEmpty(flow.motifVote) ? Jaune : Vert);
         float resteVote = flow.SecondesRestantes(flow.finVote);
         voteCompte.text = Mathf.CeilToInt(resteVote) + " s";
         voteCompte.color = resteVote <= 10f ? Rouge : Color.white;
@@ -262,7 +262,8 @@ public class MatchHUD : MonoBehaviour
 
     void MettreAJourResultat(MatchFlow flow)
     {
-        if (flow.egalite) rTitre.text = "Égalité : personne n'est éjecté";
+        if (!string.IsNullOrEmpty(flow.titreResultat)) rTitre.text = flow.titreResultat;      // fin sans vote (quêtes faites)
+        else if (flow.egalite) rTitre.text = "Égalité : personne n'est éjecté";
         else if (flow.ejecteNetId == 0) rTitre.text = "Personne n'est éjecté";
         else rTitre.text = flow.ejecteNom + " a été éjecté";
 
