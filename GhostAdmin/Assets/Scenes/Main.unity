@@ -130,6 +130,7 @@ GameObject:
   - component: {fileID: 7702553}
   - component: {fileID: 7702552}
   - component: {fileID: 7702554}
+  - component: {fileID: 7702555}
   m_Layer: 0
   m_Name: Bureau (7)
   m_TagString: Untagged
@@ -258,6 +259,33 @@ BoxCollider2D:
   m_AutoTiling: 0
   m_Size: {x: 3, y: 1}
   m_EdgeRadius: 0
+--- !u!114 &7702555
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7702551}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ca3c2859187c68c42a6bdcbde1058a24, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Interactable
+  questId: 0
+  questTitle: "Qu\xEAte"
+  questPanel: {fileID: 786431916}
+  sabotagePanel: {fileID: 666394252}
+  zoneAuto: 1
+  margeZone: 0.6
+  highlightTarget: {fileID: 0}
+  promptE: {fileID: 0}
+  highlightColor: {r: 1, g: 0.92156863, b: 0.015686275, a: 1}
+  outlineThickness: 1
+  outlineGap: 1
+  promptDroit: 1
+  positionPrompt: 0
+  decalagePrompt: {x: 0, y: 0}
+  promptMarge: 0.2
 --- !u!1 &31229220
 GameObject:
   m_ObjectHideFlags: 0
@@ -1047,6 +1075,8 @@ RectTransform:
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 1302768505}
+  - {fileID: 786431917}
+  - {fileID: 666394253}
   - {fileID: 1411010398}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
@@ -1400,6 +1430,7 @@ GameObject:
   - component: {fileID: 467441984}
   - component: {fileID: 467441986}
   - component: {fileID: 467441987}
+  - component: {fileID: 467441988}
   m_Layer: 0
   m_Name: Bureau
   m_TagString: Untagged
@@ -1496,8 +1527,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Interactable
   questId: 0
   questTitle: "Qu\xEAte"
-  questPanel: {fileID: 0}
-  sabotagePanel: {fileID: 0}
+  questPanel: {fileID: 786431916}
+  sabotagePanel: {fileID: 666394252}
   zoneAuto: 1
   margeZone: 0.6
   highlightTarget: {fileID: 0}
@@ -1555,6 +1586,33 @@ BoxCollider2D:
   m_AutoTiling: 0
   m_Size: {x: 3, y: 1}
   m_EdgeRadius: 0
+--- !u!114 &467441988
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 467441983}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ca3c2859187c68c42a6bdcbde1058a24, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Interactable
+  questId: 0
+  questTitle: "Qu\xEAte"
+  questPanel: {fileID: 786431916}
+  sabotagePanel: {fileID: 0}
+  zoneAuto: 1
+  margeZone: 0.6
+  highlightTarget: {fileID: 0}
+  promptE: {fileID: 0}
+  highlightColor: {r: 1, g: 0.92156863, b: 0.015686275, a: 1}
+  outlineThickness: 1
+  outlineGap: 1
+  promptDroit: 1
+  positionPrompt: 0
+  decalagePrompt: {x: 0, y: 0}
+  promptMarge: 0.2
 --- !u!1 &646221162
 GameObject:
   m_ObjectHideFlags: 0
@@ -1601,6 +1659,140 @@ Transform:
   - {fileID: 1819596094}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &666394252
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 666394253}
+  - component: {fileID: 666394257}
+  - component: {fileID: 666394256}
+  - component: {fileID: 666394255}
+  - component: {fileID: 666394254}
+  m_Layer: 5
+  m_Name: PanelMissionRobotSabotage
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 0
+--- !u!224 &666394253
+RectTransform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 666394252}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 227585997}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+  m_AnchorMin: {x: 0, y: 0}
+  m_AnchorMax: {x: 1, y: 1}
+  m_AnchoredPosition: {x: 0, y: 0}
+  m_SizeDelta: {x: 0, y: 0}
+  m_Pivot: {x: 0.5, y: 0.5}
+--- !u!114 &666394254
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 666394252}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 434b189c2501a994ca00e13536449759, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::MissionRobot
+  modeSabotage: 1
+  zone: {fileID: 0}
+  textSucces: {fileID: 0}
+  chemins:
+  - DDHHD
+  - HDDDH
+  - DHHDD
+  - DHHDD
+  nombreCases: 6
+  spriteRobot: {fileID: -3378959473338303302, guid: e0bab842197f4f84389fc21ce4ec2fe8, type: 3}
+  spriteRobotHaut: {fileID: -3378959473338303302, guid: e0bab842197f4f84389fc21ce4ec2fe8, type: 3}
+  spriteRobotBas: {fileID: 17426746270384133, guid: e0bab842197f4f84389fc21ce4ec2fe8, type: 3}
+  spriteRobotGauche: {fileID: 5638259562752074330, guid: e0bab842197f4f84389fc21ce4ec2fe8, type: 3}
+  spriteRobotDroite: {fileID: 5332947737335612695, guid: e0bab842197f4f84389fc21ce4ec2fe8, type: 3}
+  spriteFlecheHaut: {fileID: 0}
+  spriteFlecheBas: {fileID: 0}
+  spriteFlecheGauche: {fileID: -1988436822, guid: 573693d44c78e724c8a6197fce94fac4, type: 3}
+  spriteFlecheDroite: {fileID: -4277473405376779403, guid: 573693d44c78e724c8a6197fce94fac4, type: 3}
+  spriteStart: {fileID: 349724707190193507, guid: f8396f623706d9a4cb94f4690d40b510, type: 3}
+  spriteCase: {fileID: -5705396932952317, guid: 7505511d2cee66841a643aaf170fab14, type: 3}
+  spriteArrivee: {fileID: 0}
+  spriteCaseProgramme: {fileID: 0}
+  tailleCase: 56
+  espacement: 4
+  couleurChemin: {r: 0.2, g: 0.62, b: 0.22, a: 1}
+  couleurDepart: {r: 0.45, g: 0.8, b: 0.45, a: 1}
+  couleurTexte: {r: 1, g: 1, b: 1, a: 1}
+  dureePas: 0.35
+  aide: "Programme le robot avec les fl\xE8ches, puis START"
+  aideSabotage: "Ram\xE8ne le robot au d\xE9part : programme-le \xE0 l'envers, puis
+    START"
+--- !u!114 &666394255
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 666394252}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: cce721db83564694fb03516536642486, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::MissionBridge
+  textSucces: {fileID: 0}
+  delaiFermeture: 1.5
+--- !u!114 &666394256
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 666394252}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
+  m_Material: {fileID: 0}
+  m_Color: {r: 1, g: 1, b: 1, a: 1}
+  m_RaycastTarget: 1
+  m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
+  m_Maskable: 1
+  m_OnCullStateChanged:
+    m_PersistentCalls:
+      m_Calls: []
+  m_Sprite: {fileID: 21300000, guid: 23515b233b200a648a1d17ac9fc0cac4, type: 3}
+  m_Type: 0
+  m_PreserveAspect: 0
+  m_FillCenter: 1
+  m_FillMethod: 4
+  m_FillAmount: 1
+  m_FillClockwise: 1
+  m_FillOrigin: 0
+  m_UseSpriteMesh: 0
+  m_PixelsPerUnitMultiplier: 1
+--- !u!222 &666394257
+CanvasRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 666394252}
+  m_CullTransparentMesh: 0
 --- !u!1 &696711698
 GameObject:
   m_ObjectHideFlags: 0
@@ -1819,6 +2011,140 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &786431916
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 786431917}
+  - component: {fileID: 786431921}
+  - component: {fileID: 786431920}
+  - component: {fileID: 786431919}
+  - component: {fileID: 786431918}
+  m_Layer: 5
+  m_Name: PanelMissionRobot
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 0
+--- !u!224 &786431917
+RectTransform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 786431916}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 227585997}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+  m_AnchorMin: {x: 0, y: 0}
+  m_AnchorMax: {x: 1, y: 1}
+  m_AnchoredPosition: {x: 0, y: 0}
+  m_SizeDelta: {x: 0, y: 0}
+  m_Pivot: {x: 0.5, y: 0.5}
+--- !u!114 &786431918
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 786431916}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 434b189c2501a994ca00e13536449759, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::MissionRobot
+  modeSabotage: 0
+  zone: {fileID: 0}
+  textSucces: {fileID: 0}
+  chemins:
+  - DDHHD
+  - HDDDH
+  - DHHDD
+  - DHHDD
+  nombreCases: 6
+  spriteRobot: {fileID: -3378959473338303302, guid: e0bab842197f4f84389fc21ce4ec2fe8, type: 3}
+  spriteRobotHaut: {fileID: -3378959473338303302, guid: e0bab842197f4f84389fc21ce4ec2fe8, type: 3}
+  spriteRobotBas: {fileID: 17426746270384133, guid: e0bab842197f4f84389fc21ce4ec2fe8, type: 3}
+  spriteRobotGauche: {fileID: 5638259562752074330, guid: e0bab842197f4f84389fc21ce4ec2fe8, type: 3}
+  spriteRobotDroite: {fileID: 5332947737335612695, guid: e0bab842197f4f84389fc21ce4ec2fe8, type: 3}
+  spriteFlecheHaut: {fileID: 0}
+  spriteFlecheBas: {fileID: 0}
+  spriteFlecheGauche: {fileID: -1988436822, guid: 573693d44c78e724c8a6197fce94fac4, type: 3}
+  spriteFlecheDroite: {fileID: -4277473405376779403, guid: 573693d44c78e724c8a6197fce94fac4, type: 3}
+  spriteStart: {fileID: 349724707190193507, guid: f8396f623706d9a4cb94f4690d40b510, type: 3}
+  spriteCase: {fileID: -5705396932952317, guid: 7505511d2cee66841a643aaf170fab14, type: 3}
+  spriteArrivee: {fileID: 0}
+  spriteCaseProgramme: {fileID: 0}
+  tailleCase: 56
+  espacement: 4
+  couleurChemin: {r: 0.2, g: 0.62, b: 0.22, a: 1}
+  couleurDepart: {r: 0.45, g: 0.8, b: 0.45, a: 1}
+  couleurTexte: {r: 1, g: 1, b: 1, a: 1}
+  dureePas: 0.35
+  aide: "Programme le robot avec les fl\xE8ches, puis START"
+  aideSabotage: "Ram\xE8ne le robot au d\xE9part : programme-le \xE0 l'envers, puis
+    START"
+--- !u!114 &786431919
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 786431916}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: cce721db83564694fb03516536642486, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::MissionBridge
+  textSucces: {fileID: 0}
+  delaiFermeture: 1.5
+--- !u!114 &786431920
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 786431916}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
+  m_Material: {fileID: 0}
+  m_Color: {r: 1, g: 1, b: 1, a: 1}
+  m_RaycastTarget: 1
+  m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
+  m_Maskable: 1
+  m_OnCullStateChanged:
+    m_PersistentCalls:
+      m_Calls: []
+  m_Sprite: {fileID: 21300000, guid: 23515b233b200a648a1d17ac9fc0cac4, type: 3}
+  m_Type: 0
+  m_PreserveAspect: 0
+  m_FillCenter: 1
+  m_FillMethod: 4
+  m_FillAmount: 1
+  m_FillClockwise: 1
+  m_FillOrigin: 0
+  m_UseSpriteMesh: 0
+  m_PixelsPerUnitMultiplier: 1
+--- !u!222 &786431921
+CanvasRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 786431916}
+  m_CullTransparentMesh: 0
 --- !u!1 &793457265
 GameObject:
   m_ObjectHideFlags: 0
@@ -1927,8 +2253,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Interactable
   questId: 0
   questTitle: "Qu\xEAte"
-  questPanel: {fileID: 0}
-  sabotagePanel: {fileID: 0}
+  questPanel: {fileID: 1302768504}
+  sabotagePanel: {fileID: 1411010397}
   zoneAuto: 1
   margeZone: 0.6
   highlightTarget: {fileID: 0}
@@ -2999,8 +3325,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Interactable
   questId: 0
   questTitle: "Qu\xEAte"
-  questPanel: {fileID: 0}
-  sabotagePanel: {fileID: 0}
+  questPanel: {fileID: 1302768504}
+  sabotagePanel: {fileID: 1411010397}
   zoneAuto: 1
   margeZone: 0.6
   highlightTarget: {fileID: 0}
@@ -3069,6 +3395,7 @@ GameObject:
   - component: {fileID: 1163166271}
   - component: {fileID: 1163166270}
   - component: {fileID: 1163166272}
+  - component: {fileID: 1163166273}
   m_Layer: 0
   m_Name: Bureau (6)
   m_TagString: Untagged
@@ -3197,6 +3524,33 @@ BoxCollider2D:
   m_AutoTiling: 0
   m_Size: {x: 3, y: 1}
   m_EdgeRadius: 0
+--- !u!114 &1163166273
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1163166269}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ca3c2859187c68c42a6bdcbde1058a24, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Interactable
+  questId: 0
+  questTitle: "Qu\xEAte"
+  questPanel: {fileID: 786431916}
+  sabotagePanel: {fileID: 666394252}
+  zoneAuto: 1
+  margeZone: 0.6
+  highlightTarget: {fileID: 0}
+  promptE: {fileID: 0}
+  highlightColor: {r: 1, g: 0.92156863, b: 0.015686275, a: 1}
+  outlineThickness: 1
+  outlineGap: 1
+  promptDroit: 1
+  positionPrompt: 0
+  decalagePrompt: {x: 0, y: 0}
+  promptMarge: 0.2
 --- !u!1 &1166995496
 GameObject:
   m_ObjectHideFlags: 0
@@ -3305,8 +3659,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Interactable
   questId: 0
   questTitle: "Qu\xEAte"
-  questPanel: {fileID: 0}
-  sabotagePanel: {fileID: 0}
+  questPanel: {fileID: 1302768504}
+  sabotagePanel: {fileID: 1411010397}
   zoneAuto: 1
   margeZone: 0.6
   highlightTarget: {fileID: 0}
@@ -5523,6 +5877,7 @@ GameObject:
   - component: {fileID: 1802362079}
   - component: {fileID: 1802362078}
   - component: {fileID: 1802362080}
+  - component: {fileID: 1802362081}
   m_Layer: 0
   m_Name: Bureau (3)
   m_TagString: Untagged
@@ -5651,6 +6006,33 @@ BoxCollider2D:
   m_AutoTiling: 0
   m_Size: {x: 3, y: 1}
   m_EdgeRadius: 0
+--- !u!114 &1802362081
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1802362077}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ca3c2859187c68c42a6bdcbde1058a24, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Interactable
+  questId: 0
+  questTitle: "Qu\xEAte"
+  questPanel: {fileID: 786431916}
+  sabotagePanel: {fileID: 666394252}
+  zoneAuto: 1
+  margeZone: 0.6
+  highlightTarget: {fileID: 0}
+  promptE: {fileID: 0}
+  highlightColor: {r: 1, g: 0.92156863, b: 0.015686275, a: 1}
+  outlineThickness: 1
+  outlineGap: 1
+  promptDroit: 1
+  positionPrompt: 0
+  decalagePrompt: {x: 0, y: 0}
+  promptMarge: 0.2
 --- !u!1 &1819596093
 GameObject:
   m_ObjectHideFlags: 0
@@ -17082,6 +17464,7 @@ GameObject:
   - component: {fileID: 2047946264}
   - component: {fileID: 2047946263}
   - component: {fileID: 2047946262}
+  - component: {fileID: 2047946265}
   m_Layer: 0
   m_Name: Bureau (3)
   m_TagString: Untagged
@@ -17210,6 +17593,33 @@ Transform:
   m_Children: []
   m_Father: {fileID: 459067096}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 180}
+--- !u!114 &2047946265
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2047946261}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ca3c2859187c68c42a6bdcbde1058a24, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Interactable
+  questId: 0
+  questTitle: "Qu\xEAte"
+  questPanel: {fileID: 786431916}
+  sabotagePanel: {fileID: 666394252}
+  zoneAuto: 1
+  margeZone: 0.6
+  highlightTarget: {fileID: 0}
+  promptE: {fileID: 0}
+  highlightColor: {r: 1, g: 0.92156863, b: 0.015686275, a: 1}
+  outlineThickness: 1
+  outlineGap: 1
+  promptDroit: 1
+  positionPrompt: 0
+  decalagePrompt: {x: 0, y: 0}
+  promptMarge: 0.2
 --- !u!1 &2084613714
 GameObject:
   m_ObjectHideFlags: 0
