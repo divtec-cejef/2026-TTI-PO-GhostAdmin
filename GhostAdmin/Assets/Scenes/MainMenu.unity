@@ -1414,7 +1414,7 @@ MonoBehaviour:
   clientIndex: 0
   briefingSeconds: 5
   questsPerPlayer: 3
-  sabotageCooldown: 20
+  sabotageCooldown: 0
 --- !u!1 &1569611576
 GameObject:
   m_ObjectHideFlags: 0
