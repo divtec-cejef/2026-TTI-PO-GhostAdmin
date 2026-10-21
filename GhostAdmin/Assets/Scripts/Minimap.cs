@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Rendering;
 using UnityEngine.Tilemaps;
+using UnityEngine.InputSystem;
 using UnityEngine.UI;
 
 // AUCUN OBJET À CRÉER : créé tout seul chez chaque joueur (voir QuestProgress / PlayerQuests).
@@ -15,8 +16,11 @@ using UnityEngine.UI;
 public class Minimap : MonoBehaviour
 {
     // Réglages (l'objet est créé en code : modifie ici)
-    const float LargeurMax = 280f, HauteurMax = 220f;   // taille maximale à l'écran, en pixels
+    const float LargeurMax = 280f, HauteurMax = 220f;   // taille maximale à l'écran, en pixels (petite minimap)
     const float Marge = 14f;                            // distance du coin haut-gauche
+    const Key ToucheAgrandir = Key.Tab;                 // TAB : grande carte au centre de l'écran (TAB ou Échap pour la refermer)
+    const float PartEcranGrande = 0.8f;                 // la grande carte occupe 80 % de l'écran
+    const float VitesseClignotement = 5f;               // clignotement des quêtes et des sabotages
     const int Resolution = 512;                          // finesse de la photo de la carte
     const float DureeTrace = 20f;                        // secondes pendant lesquelles la dernière position vue reste affichée
     const float TailleQuete = 9f, TailleMoi = 11f, TailleAutre = 9f;
@@ -37,7 +41,10 @@ public class Minimap : MonoBehaviour
     Camera cam;
     Bounds bornes;
     bool pret;
-    float largeur, hauteur;
+    float largeur, hauteur;                 // taille actuelle de la carte à l'écran
+    float ratioCarte = 1f;
+    bool grande;                            // vue agrandie (TAB)
+    float echelleMarqueurs = 1f;
 
     RectTransform moi;
     readonly Dictionary<Interactable, RectTransform> quetes = new Dictionary<Interactable, RectTransform>();
@@ -127,10 +134,8 @@ public class Minimap : MonoBehaviour
     {
         // Taille à l'écran : au plus LargeurMax × HauteurMax, en gardant la forme de la carte
         float ratio = bornes.size.x / Mathf.Max(0.001f, bornes.size.y);
-        largeur = LargeurMax; hauteur = largeur / ratio;
-        if (hauteur > HauteurMax) { hauteur = HauteurMax; largeur = hauteur * ratio; }
-        panneau.sizeDelta = new Vector2(largeur + 8f, hauteur + 8f);
-        carte.sizeDelta = new Vector2(largeur, hauteur);
+        ratioCarte = ratio;
+        AppliquerTaille(false);
 
         int rw = Resolution, rh = Mathf.Max(16, Mathf.RoundToInt(Resolution / ratio));
         if (rh > Resolution) { rh = Resolution; rw = Mathf.Max(16, Mathf.RoundToInt(Resolution * ratio)); }
@@ -184,6 +189,32 @@ public class Minimap : MonoBehaviour
         }
     }
 
+    // Petite minimap en haut à gauche, ou grande carte au centre (TAB). Les marqueurs suivent (VersCarte).
+    void AppliquerTaille(bool agrandie)
+    {
+        grande = agrandie;
+        if (grande)
+        {
+            largeur = Screen.width * PartEcranGrande; hauteur = largeur / ratioCarte;
+            float hMax = Screen.height * PartEcranGrande;
+            if (hauteur > hMax) { hauteur = hMax; largeur = hauteur * ratioCarte; }
+            panneau.anchorMin = panneau.anchorMax = panneau.pivot = new Vector2(0.5f, 0.5f);
+            panneau.anchoredPosition = Vector2.zero;
+            echelleMarqueurs = 2f;
+        }
+        else
+        {
+            largeur = LargeurMax; hauteur = largeur / ratioCarte;
+            if (hauteur > HauteurMax) { hauteur = HauteurMax; largeur = hauteur * ratioCarte; }
+            panneau.anchorMin = panneau.anchorMax = panneau.pivot = new Vector2(0f, 1f);
+            panneau.anchoredPosition = new Vector2(Marge, -Marge);
+            echelleMarqueurs = 1f;
+        }
+        panneau.sizeDelta = new Vector2(largeur + 8f, hauteur + 8f);
+        carte.sizeDelta = new Vector2(largeur, hauteur);
+        if (moi != null) moi.sizeDelta = Vector2.one * TailleMoi * echelleMarqueurs;
+    }
+
     // ---------------------------------------------------------------- marqueurs
 
     RectTransform Marqueur(string nom, Color couleur, float taille)
@@ -221,12 +252,24 @@ public class Minimap : MonoBehaviour
         if (panneau.gameObject.activeSelf != visible) panneau.gameObject.SetActive(visible);
         if (!visible) return;
 
+        // TAB : grande carte au centre ; TAB ou Échap : retour à la petite
+        var clavier = Keyboard.current;
+        if (clavier != null && !QuestSession.IsOpen && !MatchFlow.Bloque)
+        {
+            if (clavier[ToucheAgrandir].wasPressedThisFrame) AppliquerTaille(!grande);
+            else if (grande && clavier.escapeKey.wasPressedThisFrame) AppliquerTaille(false);
+        }
+        if (grande && (QuestSession.IsOpen || MatchFlow.Bloque)) AppliquerTaille(false);   // une mission ou un vote s'ouvre : on range la carte
+
         if (Time.time >= prochainScan)
         {
             objets = FindObjectsByType<Interactable>();
             joueurs = FindObjectsByType<PlayerIdentity>();
             prochainScan = Time.time + 1f;
         }
+
+        // Clignotement des quêtes (et des sabotages chez le pirate) : taille et transparence qui pulsent
+        float pulsation = 0.5f + 0.5f * Mathf.Sin(Time.time * VitesseClignotement);
 
         var role = local.GetComponent<PlayerRole>();
         bool pirate = role != null && role.MyRole == Role.Pirate;
@@ -254,7 +297,10 @@ public class Minimap : MonoBehaviour
             m.gameObject.SetActive(montrer);
             if (!montrer) continue;
             m.anchoredPosition = VersCarte(it.transform.position);
-            m.GetComponent<Image>().color = pirate ? CouleurQuetePirate : CouleurQueteInfo;
+            var couleurQ = pirate ? CouleurQuetePirate : CouleurQueteInfo;
+            couleurQ.a = Mathf.Lerp(0.35f, 1f, pulsation);
+            m.GetComponent<Image>().color = couleurQ;
+            m.sizeDelta = Vector2.one * TailleQuete * echelleMarqueurs * Mathf.Lerp(0.9f, 1.5f, pulsation);
         }
 
         // Les autres : dernière position où je les ai vus
@@ -283,7 +329,7 @@ public class Minimap : MonoBehaviour
             var c = p.Couleur;
             c.a = vu ? 1f : Mathf.Lerp(0.9f, 0.15f, age / DureeTrace);   // s'efface avec le temps
             t.marqueur.GetComponent<Image>().color = c;
-            t.marqueur.sizeDelta = Vector2.one * (vu ? TailleAutre + 2f : TailleAutre);
+            t.marqueur.sizeDelta = Vector2.one * (vu ? TailleAutre + 2f : TailleAutre) * echelleMarqueurs;
         }
 
         // Un joueur parti : sa trace disparaît
