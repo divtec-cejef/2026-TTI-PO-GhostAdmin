@@ -60,6 +60,14 @@ public static class QuestSession
     // Abandon (Échap) : on referme sans rien envoyer.
     public static void Cancel() { if (IsOpen) Close(); }
 
+    // Au début d'une partie : on repart propre (un panneau de la partie précédente ne peut pas rester « ouvert »).
+    public static void Reinitialiser()
+    {
+        if (IsOpen) Close();
+        panel = null;
+        owner = null;
+    }
+
     static void Close()
     {
         IsOpen = false;

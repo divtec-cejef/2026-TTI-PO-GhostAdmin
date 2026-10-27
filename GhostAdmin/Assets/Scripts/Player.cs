@@ -54,11 +54,12 @@ public class Player : NetworkBehaviour
         moveInput = ctx.ReadValue<Vector2>();
     }
 
-    // Figé pendant le briefing, pendant une mission, pendant le vote et le résultat, et une fois éjecté.
+    // Figé pendant le briefing, pendant une mission, pendant le vote et le résultat.
+    // Éjecté : il continue de se déplacer en fantôme (sauf si « Fantome Se Deplace » est décoché sur PlayerIdentity).
     bool Frozen => (role != null && !role.matchStarted)
                    || QuestSession.IsOpen
                    || MatchFlow.Bloque
-                   || (identity != null && identity.elimine);
+                   || (identity != null && identity.elimine && !identity.FantomeSeDeplace);
 
     void FixedUpdate()
     {

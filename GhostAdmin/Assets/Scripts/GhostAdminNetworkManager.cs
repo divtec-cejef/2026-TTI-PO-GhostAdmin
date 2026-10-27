@@ -11,7 +11,8 @@ public class GhostAdminNetworkManager : NetworkRoomManager
     [Header("Ghost Admin")]
     [SerializeField] float briefingSeconds = 30f;   // durée des instructions (mets 5 pour tester)
     [SerializeField] int questsPerPlayer = 3;        // nombre de quêtes tirées pour chaque joueur
-    [SerializeField] float sabotageCooldown = 20f;   // secondes entre deux sabotages du pirate
+    [SerializeField] float rechargeSabotage = 0f;    // secondes entre deux sabotages du pirate (0 = aucune attente)
+    [SerializeField] bool fantomesFontLeursQuetes = true;   // un joueur éjecté continue ses quêtes : elles comptent dans la barre et pour la victoire
     // Le chrono de la partie, le vote et le résultat se règlent sur MatchFlow (objet GameState, scène Main).
 
     // Historique des réussites, dans l'ordre : le sabotage annule la dernière.
@@ -19,6 +20,15 @@ public class GhostAdminNetworkManager : NetworkRoomManager
 
     readonly List<PlayerRole> loaded = new List<PlayerRole>();
     bool rolesAssigned;
+
+    public float RechargeSabotage => rechargeSabotage;   // lu par la barre de quêtes (indicateur du pirate)
+    public bool FantomesFontLeursQuetes => fantomesFontLeursQuetes;   // lu par PlayerInteraction et QuestArrows
+
+    // Les fantômes (éjectés) font-ils encore leurs quêtes ? (réglage du NetworkManager, le même chez tout le monde)
+    public static bool FantomesActifs
+    {
+        get { var m = singleton as GhostAdminNetworkManager; return m == null || m.FantomesFontLeursQuetes; }
+    }
 
     // Lu par MatchFlow (vote, résultat) : les joueurs de la partie, et le pirate.
     public List<PlayerRole> ServerPlayers => loaded;
@@ -162,7 +172,7 @@ public class GhostAdminNetworkManager : NetworkRoomManager
             if (progress != null)
             {
                 progress.ServerRetirerFaite(c.Value);
-                progress.sabotageReadyAt = NetworkTime.time + sabotageCooldown;
+                progress.sabotageReadyAt = NetworkTime.time + rechargeSabotage;
             }
             Debug.Log($"[Serveur] Sabotage : la quête {c.Value} de {c.Key.name} est annulée");
             pirate.TargetSabotageResult(true, "Sabotage réussi : la mission réalisée ici est annulée");
@@ -185,7 +195,7 @@ public class GhostAdminNetworkManager : NetworkRoomManager
         {
             if (p == null) continue;
             var id = p.GetComponent<PlayerIdentity>();
-            if (id != null && id.elimine) continue;
+            if (!fantomesFontLeursQuetes && id != null && id.elimine) continue;   // sinon, les quêtes d'un éjecté comptent toujours
             var q = p.GetComponent<PlayerQuests>();
             done += q.ServerDoneCount;
             total += q.ServerTotalCount;      // le pirate n'a rien : il ne compte pas

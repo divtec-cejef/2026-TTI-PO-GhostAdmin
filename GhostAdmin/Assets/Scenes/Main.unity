@@ -1614,6 +1614,7 @@ GameObject:
   - component: {fileID: 666394256}
   - component: {fileID: 666394255}
   - component: {fileID: 666394254}
+  - component: {fileID: 666394258}
   m_Layer: 5
   m_Name: PanelMissionRobotSabotage
   m_TagString: Untagged
@@ -1660,7 +1661,8 @@ MonoBehaviour:
   - HDDDH
   - DHHDD
   - DHHDD
-  nombreCases: 6
+  - DHHDD
+  nombreCases: 5
   spriteRobot: {fileID: -3378959473338303302, guid: e0bab842197f4f84389fc21ce4ec2fe8, type: 3}
   spriteRobotHaut: {fileID: -3378959473338303302, guid: e0bab842197f4f84389fc21ce4ec2fe8, type: 3}
   spriteRobotBas: {fileID: 17426746270384133, guid: e0bab842197f4f84389fc21ce4ec2fe8, type: 3}
@@ -1739,6 +1741,18 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 666394252}
   m_CullTransparentMesh: 0
+--- !u!114 &666394258
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 666394252}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 20d986c844fb4c349930eb87a7cb2b47, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::BoutonFermerMission
 --- !u!1 &696711698
 GameObject:
   m_ObjectHideFlags: 0
@@ -1970,6 +1984,7 @@ GameObject:
   - component: {fileID: 786431920}
   - component: {fileID: 786431919}
   - component: {fileID: 786431918}
+  - component: {fileID: 786431922}
   m_Layer: 5
   m_Name: PanelMissionRobot
   m_TagString: Untagged
@@ -2016,7 +2031,8 @@ MonoBehaviour:
   - HDDDH
   - DHHDD
   - DHHDD
-  nombreCases: 6
+  - DHHDD
+  nombreCases: 5
   spriteRobot: {fileID: -3378959473338303302, guid: e0bab842197f4f84389fc21ce4ec2fe8, type: 3}
   spriteRobotHaut: {fileID: -3378959473338303302, guid: e0bab842197f4f84389fc21ce4ec2fe8, type: 3}
   spriteRobotBas: {fileID: 17426746270384133, guid: e0bab842197f4f84389fc21ce4ec2fe8, type: 3}
@@ -2095,6 +2111,18 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 786431916}
   m_CullTransparentMesh: 0
+--- !u!114 &786431922
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 786431916}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 20d986c844fb4c349930eb87a7cb2b47, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::BoutonFermerMission
 --- !u!1 &793457265
 GameObject:
   m_ObjectHideFlags: 0
@@ -3998,6 +4026,7 @@ GameObject:
   - component: {fileID: 1302768507}
   - component: {fileID: 1302768510}
   - component: {fileID: 1302768511}
+  - component: {fileID: 1302768512}
   m_Layer: 5
   m_Name: PanelMissionFichier
   m_TagString: Untagged
@@ -4120,6 +4149,18 @@ MonoBehaviour:
   tailleTexte: 70
   couleurTexte: {r: 1, g: 1, b: 1, a: 1}
   policeNoms: {fileID: 0}
+--- !u!114 &1302768512
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1302768504}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 20d986c844fb4c349930eb87a7cb2b47, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::BoutonFermerMission
 --- !u!1 &1352633725
 GameObject:
   m_ObjectHideFlags: 0
@@ -4272,6 +4313,7 @@ GameObject:
   - component: {fileID: 1411010399}
   - component: {fileID: 1411010401}
   - component: {fileID: 1411010402}
+  - component: {fileID: 1411010403}
   m_Layer: 5
   m_Name: PanelMissionFichierSabotage
   m_TagString: Untagged
@@ -4388,6 +4430,18 @@ MonoBehaviour:
   exigerTousSelectionnes: 1
   afficherCompteur: 1
   positionCompteur: 2
+--- !u!114 &1411010403
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1411010397}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 20d986c844fb4c349930eb87a7cb2b47, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::BoutonFermerMission
 --- !u!1 &1414348093
 GameObject:
   m_ObjectHideFlags: 0
@@ -5212,23 +5266,29 @@ MonoBehaviour:
   syncMode: 0
   syncInterval: 0
   dureePartie: 180
+  dureeReflexion: 15
   dureeVote: 45
   dureeResultat: 12
   dureeResultatReunion: 6
-  finAnticipeeSiQuetesFaites: 0
+  quetesTerminees: 1
   voterPourSoiMeme: 0
   voteAuHasardSiAbsent: 1
   egaliteAuHasard: 0
+  innocentsEjectesPourVictoirePirate: 2
+  informaticiensRestantsPourVictoirePirate: 1
   reunionsParJoueur: 1
   reunionCooldown: 20
   portraits: []
   phase: 0
   finPartie: 0
+  ouvertureVotes: 0
   finVote: 0
   finResultat: 0
   voteUrgence: 0
   appelant: 
   resultatFinal: 0
+  motifVote: 
+  titreResultat: 
   ejecteNetId: 0
   ejecteNom: 
   ejecteEtaitPirate: 0

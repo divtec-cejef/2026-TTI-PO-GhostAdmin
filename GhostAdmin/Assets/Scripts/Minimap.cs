@@ -171,6 +171,8 @@ public class Minimap : MonoBehaviour
         foreach (var it in FindObjectsByType<Interactable>())
             foreach (var r in it.GetComponentsInChildren<Renderer>(true))
                 if (r.enabled && (r.name == "Contour" || r.name == "E")) caches.Add(r);
+        foreach (var fov in FindObjectsByType<ChampDeVision>())                   // le noir du champ de vision ne doit pas être photographié
+            foreach (var r in fov.GetComponentsInChildren<Renderer>()) if (r.enabled) caches.Add(r);
         foreach (var r in caches) r.enabled = false;
 
         try
@@ -305,6 +307,7 @@ public class Minimap : MonoBehaviour
 
         // Les autres : dernière position où je les ai vus
         var camJeu = CameraDuJeu();
+        bool jeSuisFantome = idLocal != null && idLocal.elimine;
         foreach (var p in joueurs)
         {
             if (p == null || p == idLocal) continue;
@@ -313,11 +316,17 @@ public class Minimap : MonoBehaviour
                 t = new Trace { marqueur = Marqueur("Trace", p.Couleur, TailleAutre) };
                 traces[p.netId] = t;
             }
+            if (p.elimine && !jeSuisFantome)                              // un fantôme n'existe plus pour les vivants
+            {
+                t.marqueur.gameObject.SetActive(false);
+                continue;
+            }
             bool vu = false;
-            if (camJeu != null && !p.elimine)
+            if (camJeu != null)
             {
                 Vector3 vp = camJeu.WorldToViewportPoint(p.transform.position);
-                vu = vp.z > 0f && vp.x >= 0f && vp.x <= 1f && vp.y >= 0f && vp.y <= 1f;
+                vu = vp.z > 0f && vp.x >= 0f && vp.x <= 1f && vp.y >= 0f && vp.y <= 1f
+                     && ChampDeVision.Voit(p.transform.position);          // et pas caché dans le noir ou derrière un mur
             }
             if (vu) { t.position = p.transform.position; t.vuA = Time.time; }
 

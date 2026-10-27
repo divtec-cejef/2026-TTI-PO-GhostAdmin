@@ -13,18 +13,23 @@ public class QuestBar : MonoBehaviour
     const float MargeHaut = 14f;                                 // pixels depuis le haut
     static readonly Color Fond = new Color(0f, 0f, 0f, 0.55f);
     static readonly Color Remplissage = Color.yellow;
-    static readonly Color Texte = Color.white;
+    static readonly Color Texte = Color.white;                   // le texte sur la partie sombre (pas encore remplie)
+    static readonly Color TexteSurRemplissage = Color.black;     // le texte sur la partie jaune (remplie) : il change de couleur pile à la limite
+    static readonly Color ContourTexte = Color.black;            // contour des messages sous la barre, pour rester lisibles sur un décor clair
+    static readonly float EpaisseurContour = 0.3f;               // 0 = pas de contour, 0.5 = très épais
 
     static QuestBar instance;
     const float DureeMessage = 4f;                               // secondes d'affichage d'un message
     static readonly Color CouleurMessage = new Color(1f, 0.35f, 0.3f, 1f);
 
     TMP_Text message;
+    TMP_Text etatSabotage;      // pirate : « Sabotage : prêt » / « Sabotage dans 12 s », sous la barre
     float messageJusqua = -1f;
 
     RectTransform racine;
     RectTransform fill;
-    TMP_Text label;
+    TMP_Text label;            // texte clair, sur toute la barre
+    TMP_Text labelSombre;      // même texte en sombre, découpé à la partie remplie (RectMask2D) : lisible des deux côtés
     float affiche;      // fraction affichée (animée)
     float attenteDepuis = -1f;
     bool avertissementFait, premiereFoisVisible;
@@ -44,7 +49,23 @@ public class QuestBar : MonoBehaviour
         fondImg.color = Fond;
         fondImg.raycastTarget = false;
 
-        // Remplissage
+        // Texte clair, sur toute la barre (dessiné sous le remplissage)
+        var txtGo = new GameObject("Texte");
+        txtGo.transform.SetParent(fondGo.transform, false);
+        var txtRect = txtGo.AddComponent<RectTransform>();
+        txtRect.anchorMin = Vector2.zero;
+        txtRect.anchorMax = Vector2.one;
+        txtRect.offsetMin = new Vector2(2f, 0f);
+        txtRect.offsetMax = new Vector2(-2f, 0f);
+        label = txtGo.AddComponent<TextMeshProUGUI>();
+        label.alignment = TextAlignmentOptions.Center;
+        label.fontSize = 14f;
+        label.fontStyle = FontStyles.Bold;
+        label.color = Texte;
+        label.raycastTarget = false;
+        label.text = "";
+
+        // Remplissage (au-dessus du texte clair), qui découpe tout ce qu'il contient à sa largeur
         var fillGo = new GameObject("Remplissage");
         fillGo.transform.SetParent(fondGo.transform, false);
         fill = fillGo.AddComponent<RectTransform>();
@@ -56,22 +77,25 @@ public class QuestBar : MonoBehaviour
         var fillImg = fillGo.AddComponent<Image>();
         fillImg.color = Remplissage;
         fillImg.raycastTarget = false;
+        fillGo.AddComponent<RectMask2D>();
 
-        // Texte
-        var txtGo = new GameObject("Texte");
-        txtGo.transform.SetParent(fondGo.transform, false);
-        var txtRect = txtGo.AddComponent<RectTransform>();
-        txtRect.anchorMin = Vector2.zero;
-        txtRect.anchorMax = Vector2.one;
-        txtRect.offsetMin = Vector2.zero;
-        txtRect.offsetMax = Vector2.zero;
-        label = txtGo.AddComponent<TextMeshProUGUI>();
-        label.alignment = TextAlignmentOptions.Center;
-        label.fontSize = 14f;
-        label.fontStyle = FontStyles.Bold;
-        label.color = Texte;
-        label.raycastTarget = false;
-        label.text = "";
+        // Même texte en sombre, dans le remplissage : aligné sur toute la barre, mais visible seulement sur le jaune
+        var sombreGo = new GameObject("TexteSombre");
+        sombreGo.transform.SetParent(fillGo.transform, false);
+        var sombreRect = sombreGo.AddComponent<RectTransform>();
+        sombreRect.anchorMin = new Vector2(0f, 0f);
+        sombreRect.anchorMax = new Vector2(0f, 1f);
+        sombreRect.pivot = new Vector2(0f, 0.5f);
+        sombreRect.anchoredPosition = Vector2.zero;
+        sombreRect.offsetMin = new Vector2(0f, -2f);                   // même hauteur que la barre entière
+        sombreRect.offsetMax = new Vector2(0f, 2f);
+        labelSombre = sombreGo.AddComponent<TextMeshProUGUI>();
+        labelSombre.alignment = TextAlignmentOptions.Center;
+        labelSombre.fontSize = 14f;
+        labelSombre.fontStyle = FontStyles.Bold;
+        labelSombre.color = TexteSurRemplissage;
+        labelSombre.raycastTarget = false;
+        labelSombre.text = "";
 
         racine.gameObject.SetActive(false);
 
@@ -90,13 +114,39 @@ public class QuestBar : MonoBehaviour
         message.fontStyle = FontStyles.Bold;
         message.color = CouleurMessage;
         message.raycastTarget = false;
+        Contourer(message);
         msgGo.SetActive(false);
+
+        // État du sabotage (pirate seulement), juste à droite de la barre : « Sabotage : prêt » / « Sabotage dans 12 s »
+        var sabGo = new GameObject("EtatSabotage");
+        sabGo.transform.SetParent(transform, false);
+        var sabRect = sabGo.AddComponent<RectTransform>();
+        sabRect.anchorMin = new Vector2(0.5f + Largeur / 2f, 1f);
+        sabRect.anchorMax = new Vector2(0.5f + Largeur / 2f, 1f);
+        sabRect.pivot = new Vector2(0f, 1f);
+        sabRect.anchoredPosition = new Vector2(10f, -MargeHaut);
+        sabRect.sizeDelta = new Vector2(220f, Hauteur);
+        etatSabotage = sabGo.AddComponent<TextMeshProUGUI>();
+        etatSabotage.alignment = TextAlignmentOptions.Left;
+        etatSabotage.fontSize = 14f;
+        etatSabotage.fontStyle = FontStyles.Bold;
+        etatSabotage.raycastTarget = false;
+        Contourer(etatSabotage);
+        sabGo.SetActive(false);
 
         instance = this;
         Debug.Log("[Quêtes] Barre de quêtes créée dans le HUD");
     }
 
     void OnDestroy() { if (instance == this) instance = null; }
+
+    // Un contour sombre autour des lettres (le texte garde sa couleur), pour rester lisible quel que soit le fond.
+    static void Contourer(TMP_Text t)
+    {
+        if (EpaisseurContour <= 0f) return;
+        t.outlineWidth = EpaisseurContour;
+        t.outlineColor = ContourTexte;
+    }
 
     // Affiche un message quelques secondes sous la barre (appelé par PlayerQuests).
     public static void Notify(string texte)
@@ -135,9 +185,28 @@ public class QuestBar : MonoBehaviour
         if (!visible) return;
         if (!premiereFoisVisible) { premiereFoisVisible = true; Debug.Log("[Quêtes] Barre de quêtes affichée"); }
 
+        // Pirate : où en est la recharge du sabotage (rien à afficher si la recharge est à 0 dans le NetworkManager)
+        var role = local != null ? local.GetComponent<PlayerRole>() : null;
+        var manager = Mirror.NetworkManager.singleton as GhostAdminNetworkManager;
+        bool pirate = role != null && role.MyRole == Role.Pirate && (manager == null || manager.RechargeSabotage > 0f);
+        if (etatSabotage.gameObject.activeSelf != pirate) etatSabotage.gameObject.SetActive(pirate);
+        if (pirate)
+        {
+            if (progress.SabotagePret) { etatSabotage.text = "Sabotage : prêt"; etatSabotage.color = new Color(1f, 0.45f, 0.4f); }
+            else
+            {
+                int reste = Mathf.CeilToInt((float)(progress.sabotageReadyAt - Mirror.NetworkTime.time));
+                etatSabotage.text = $"Sabotage dans {Mathf.Max(0, reste)} s";
+                etatSabotage.color = new Color(0.75f, 0.75f, 0.78f);
+            }
+        }
+
         float cible = progress.total > 0 ? Mathf.Clamp01((float)progress.done / progress.total) : 0f;
         affiche = Mathf.MoveTowards(affiche, cible, Time.deltaTime * 1.5f);    // remplissage animé
         fill.anchorMax = new Vector2(affiche, 1f);
-        label.text = $"Quêtes : {progress.done} / {progress.total}";
+        label.text = labelSombre.text = $"Quêtes : {progress.done} / {progress.total}";
+        // Le texte sombre garde la largeur de la barre entière (il commence au bord gauche du remplissage, comme le clair)
+        var sombreRect = labelSombre.rectTransform;
+        sombreRect.sizeDelta = new Vector2(racine.rect.width - 4f, sombreRect.sizeDelta.y);
     }
 }

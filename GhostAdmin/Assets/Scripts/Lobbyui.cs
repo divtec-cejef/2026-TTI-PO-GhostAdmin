@@ -4,13 +4,18 @@ using Mirror;
 using TMPro;
 using UnityEngine;
 
-// Scène "Salon" (Room Scene) : liste des joueurs + bouton PRÊT + choix du personnage (panneau créé en code).
+// Scène "Salon" (Room Scene) : liste des joueurs (panneau « JOUEURS » créé en code, ou l'ancien texte brut si tu
+// décoches « Liste Elegante »), bouton PRÊT, et choix du personnage (panneau créé en code).
 public class LobbyUI : MonoBehaviour
 {
     static LobbyUI instance;
 
     [SerializeField] TMP_Text playerList;
     [SerializeField] TMP_Text readyButtonLabel;
+
+    [Header("Liste des joueurs")]
+    [SerializeField] bool listeElegante = true;                                        // panneau avec portraits et badges PRÊT ; décoché = le texte Player List
+    [SerializeField] LobbyPlayersUI.Position positionListe = LobbyPlayersUI.Position.Gauche;
 
     [Header("Choix du personnage")]
     [SerializeField] bool afficherSelecteur = true;
@@ -21,6 +26,11 @@ public class LobbyUI : MonoBehaviour
 
     void Start()
     {
+        if (listeElegante)
+        {
+            LobbyPlayersUI.Ensure(positionListe);                                // le panneau « JOUEURS », créé en code
+            if (playerList != null) playerList.gameObject.SetActive(false);     // l'ancien texte brut n'est plus utile
+        }
         if (afficherSelecteur) CharacterSelectUI.Ensure(positionSelecteur);   // le panneau « PERSONNAGE », créé en code
         Refresh();
     }
@@ -59,6 +69,8 @@ public class LobbyUI : MonoBehaviour
             if (p.isLocalPlayer && readyButtonLabel != null)
                 readyButtonLabel.text = p.readyToBegin ? "ANNULER" : "PRÊT";
         }
-        if (playerList != null) playerList.text = sb.ToString();
+
+        if (listeElegante) LobbyPlayersUI.Rafraichir();
+        else if (playerList != null) playerList.text = sb.ToString();
     }
 }

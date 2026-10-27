@@ -4,6 +4,8 @@ using UnityEngine;
 
 // SUR LE PREFAB player1. Qui est ce joueur : son pseudo, son numéro (→ sa couleur) et s'il a été éjecté.
 // Affiche son nom au-dessus de sa tête (créé en code, rien à ajouter dans le prefab) et envoie son vote.
+// Éjecté = fantôme : il continue de se déplacer (les murs l'arrêtent, les joueurs non), ne peut plus rien faire,
+// et les joueurs vivants ne le voient pas du tout ; seuls les autres fantômes (et lui-même) le voient, en transparence.
 public class PlayerIdentity : NetworkBehaviour
 {
     public static PlayerIdentity Local { get; private set; }
@@ -28,6 +30,11 @@ public class PlayerIdentity : NetworkBehaviour
     [SerializeField] float hauteurNom = 0.15f;    // espace entre le haut du personnage et le nom (unités du monde)
     [SerializeField] bool teinterPersonnage = false;   // true : le sprite prend aussi la couleur du joueur
 
+    [Header("Fantômes (joueurs éjectés)")]
+    [SerializeField] bool fantomeSeDeplace = true;          // un éjecté continue de se déplacer (sans rien pouvoir faire)
+    [SerializeField] bool fantomeTraverseTout = false;      // true : il passe aussi à travers les murs et les meubles (par défaut : seuls les joueurs sont ignorés)
+    [SerializeField, Range(0.05f, 1f)] float opaciteFantome = 0.35f;   // comment les fantômes se voient entre eux (les vivants ne les voient pas)
+
     [SyncVar(hook = nameof(NomChange))] public string nom = "";
     [SyncVar(hook = nameof(IndexChange))] public int indexJoueur;
     [SyncVar(hook = nameof(ElimineChange))] public bool elimine;
@@ -40,13 +47,22 @@ public class PlayerIdentity : NetworkBehaviour
     // La couleur du joueur : celle de son personnage ; à défaut, une couleur par numéro de joueur.
     public Color Couleur => Skins.Valide(skin) ? Skins.Couleur(skin) : CouleurDe(indexJoueur);
 
+    public bool FantomeSeDeplace => fantomeSeDeplace;                    // lu par Player
+    public static bool JeSuisFantome => Local != null && Local.elimine;   // MON joueur a été éjecté
+    bool physiqueFantomeFaite;
+
     void Awake()
     {
         sr = GetComponent<SpriteRenderer>();
         if (sr != null) couleurOrigine = sr.color;
     }
 
-    public override void OnStartLocalPlayer() => Local = this;
+    public override void OnStartLocalPlayer()
+    {
+        Local = this;
+        ChampDeVision.Ensure(this);        // le noir autour de mon personnage, arrêté par les murs
+        RafraichirTous();
+    }
     public override void OnStartClient() { CreerEtiquette(); AppliquerSkin(); Rafraichir(); }
     void OnDestroy() { if (Local == this) Local = null; }
 
@@ -63,7 +79,11 @@ public class PlayerIdentity : NetworkBehaviour
     }
 
     [Server]
-    public void ServerEliminer() => elimine = true;
+    public void ServerEliminer()
+    {
+        elimine = true;
+        AppliquerPhysiqueFantome();        // aussi sur un serveur sans affichage (sinon le hook s'en charge)
+    }
 
     // Mon joueur vote pour la cible (netId). Le serveur vérifie tout (MatchFlow).
     [Command]
@@ -106,7 +126,16 @@ public class PlayerIdentity : NetworkBehaviour
 
     void NomChange(string o, string n) => Rafraichir();
     void IndexChange(int o, int n) => Rafraichir();
-    void ElimineChange(bool o, bool n) => Rafraichir();
+    void ElimineChange(bool o, bool n)
+    {
+        Rafraichir();
+        if (isLocalPlayer) RafraichirTous();   // c'est MOI qui suis éjecté : les autres fantômes deviennent visibles pour moi
+    }
+
+    static void RafraichirTous()
+    {
+        foreach (var p in FindObjectsByType<PlayerIdentity>()) p.Rafraichir();
+    }
     void SkinChange(int o, int n) { AppliquerSkin(); Rafraichir(); }
 
     // Le personnage prend la couleur choisie : CharacterSkin (ajouté s'il manque) remplace les cases de l'animation.
@@ -139,16 +168,43 @@ public class PlayerIdentity : NetworkBehaviour
 
     void Rafraichir()
     {
+        // Un fantôme n'est vu que par les fantômes (et par lui-même) : pour les vivants, il n'existe plus à l'écran
+        bool visible = !elimine || JeSuisFantome;
+
         if (etiquette != null)
         {
             etiquette.text = elimine ? nom + " (éjecté)" : nom;
             etiquette.color = elimine ? new Color(0.7f, 0.7f, 0.7f, 0.8f) : Couleur;
+            if (etiquette.gameObject.activeSelf != visible) etiquette.gameObject.SetActive(visible);
         }
         if (sr != null && (teinterPersonnage || elimine || sr.color != couleurOrigine))
         {
             var c = teinterPersonnage ? Couleur : couleurOrigine;
-            c.a = elimine ? 0.35f : couleurOrigine.a;                     // éjecté = fantôme
+            c.a = elimine ? couleurOrigine.a * opaciteFantome : couleurOrigine.a;   // fantôme = transparent
             sr.color = c;
+        }
+        foreach (var r in GetComponentsInChildren<SpriteRenderer>(true))        // le corps, et une éventuelle ombre
+            if (r.enabled != visible) r.enabled = visible;
+        if (elimine) AppliquerPhysiqueFantome();
+    }
+
+    // Un fantôme ne doit gêner personne (un obstacle invisible serait injouable) : il ignore les autres joueurs,
+    // dans les deux sens, mais les murs et les meubles l'arrêtent comme tout le monde.
+    void AppliquerPhysiqueFantome()
+    {
+        if (physiqueFantomeFaite) return;
+        physiqueFantomeFaite = true;
+        var miens = GetComponentsInChildren<Collider2D>();
+        if (fantomeTraverseTout)
+        {
+            foreach (var c in miens) c.isTrigger = true;                  // plus aucune collision : murs, joueurs, meubles
+            return;
+        }
+        foreach (var autre in FindObjectsByType<PlayerIdentity>())
+        {
+            if (autre == this) continue;
+            foreach (var oc in autre.GetComponentsInChildren<Collider2D>())
+                foreach (var c in miens) Physics2D.IgnoreCollision(c, oc, true);
         }
     }
 }

@@ -3,7 +3,7 @@ using Mirror;
 using UnityEngine;
 
 // SUR L'OBJET GameState DE LA SCÈNE Main (à côté de QuestProgress). Le déroulé d'une partie :
-//   Partie (chrono 3:00) → Vote final (45 s) → Résultat (qui est éjecté, qui gagne) → retour au salon.
+//   Partie (chrono 3:00) → Vote final (15 s de réflexion, puis 45 s pour voter) → Résultat → retour au salon.
 // Toutes les quêtes réalisées avant 0:00 : la fin de partie arrive tout de suite (« Quetes Terminees ») et, quoi
 // qu'il se passe au vote, ce sont les informaticiens qui gagnent.
 // Pendant la partie, le bouton rouge (MeetingButton) déclenche une RÉUNION D'URGENCE : même vote, puis un court
@@ -18,7 +18,8 @@ public class MatchFlow : NetworkBehaviour
 
     [Header("Durées (secondes)")]
     [SerializeField] float dureePartie = 180f;       // 3 minutes de jeu après le briefing
-    [SerializeField] float dureeVote = 45f;          // temps pour voter
+    [SerializeField] float dureeReflexion = 15f;     // au début de chaque vote : on voit les cartes, on discute, mais on ne peut pas encore voter
+    [SerializeField] float dureeVote = 45f;          // temps pour voter, une fois la réflexion passée
     [SerializeField] float dureeResultat = 12f;      // affichage du résultat final avant le retour au salon
     [SerializeField] float dureeResultatReunion = 6f;   // affichage du résultat d'une réunion avant la reprise
 
@@ -30,6 +31,7 @@ public class MatchFlow : NetworkBehaviour
     [SerializeField] bool voteAuHasardSiAbsent = true;         // à la fin du vote, ceux qui n'ont pas voté votent au hasard
     [SerializeField] bool egaliteAuHasard = false;             // égalité : true = tirage au sort, false = personne n'est éjecté
     [SerializeField] int innocentsEjectesPourVictoirePirate = 2;   // dès que ce nombre d'innocents a été éjecté, le pirate gagne (0 = jamais)
+    [SerializeField] int informaticiensRestantsPourVictoirePirate = 1;   // quand il ne reste plus que ce nombre d'informaticiens face au pirate (1 = un contre un), le pirate gagne (0 = jamais)
 
     [Header("Réunion d'urgence (bouton rouge)")]
     [SerializeField] int reunionsParJoueur = 1;                // combien de fois chaque joueur peut appuyer par partie
@@ -41,6 +43,7 @@ public class MatchFlow : NetworkBehaviour
     // ---- État répliqué à tous les clients ----
     [SyncVar] public PhasePartie phase = PhasePartie.Attente;
     [SyncVar] public double finPartie;        // heures réseau (NetworkTime) de fin de chaque phase
+    [SyncVar] public double ouvertureVotes;       // heure à partir de laquelle on peut voter (avant : temps de réflexion)
     [SyncVar] public double finVote;
     [SyncVar] public double finResultat;
     [SyncVar] public bool voteUrgence;        // ce vote est une réunion d'urgence (sinon : le vote final à 0:00)
@@ -66,6 +69,9 @@ public class MatchFlow : NetworkBehaviour
     double reunionDisponibleA;                // heure réseau à partir de laquelle le bouton marche
     double debutVote;                         // pour mettre le chrono en pause pendant une réunion
     int innocentsEjectes;                     // informaticiens éjectés depuis le début de la partie
+    int informaticiensAuDepart;               // pour ne déclarer la victoire « un contre un » qu'après une éjection ou un départ
+    bool pirateAuDepart;                      // la partie a commencé avec un pirate (sinon : mode test, rien à vérifier)
+    double prochaineVerification;             // effectifs vérifiés une fois par seconde pendant la partie
     bool voteDesQuetes;                       // le vote final en cours a été déclenché par les quêtes : informaticiens gagnants quoi qu'il arrive
     bool retourLance;
 
@@ -75,6 +81,7 @@ public class MatchFlow : NetworkBehaviour
     public static bool EnPartie => Instance == null || Instance.phase == PhasePartie.Partie;
     public static bool Bloque => Instance != null && (Instance.phase == PhasePartie.Vote || Instance.phase == PhasePartie.Resultat);
     public bool VoterPourSoiMeme => voterPourSoiMeme;   // lu par MatchHUD pour griser (ou non) sa propre carte
+    public bool VoteOuvert => NetworkTime.time >= ouvertureVotes;   // la réflexion est passée : on peut voter
 
     void Awake() => Instance = this;
     public override void OnStartServer() => Instance = this;
@@ -85,12 +92,14 @@ public class MatchFlow : NetworkBehaviour
     {
         base.OnValidate();                                   // NetworkBehaviour a déjà un OnValidate : on le complète
         dureePartie = Mathf.Max(10f, dureePartie);
+        dureeReflexion = Mathf.Max(0f, dureeReflexion);
         dureeVote = Mathf.Max(5f, dureeVote);
         dureeResultat = Mathf.Max(3f, dureeResultat);
         dureeResultatReunion = Mathf.Max(2f, dureeResultatReunion);
         reunionsParJoueur = Mathf.Max(0, reunionsParJoueur);
         reunionCooldown = Mathf.Max(0f, reunionCooldown);
         innocentsEjectesPourVictoirePirate = Mathf.Max(0, innocentsEjectesPourVictoirePirate);
+        informaticiensRestantsPourVictoirePirate = Mathf.Max(0, informaticiensRestantsPourVictoirePirate);
     }
 
     public float SecondesRestantes(double fin) => Mathf.Max(0f, (float)(fin - NetworkTime.time));
@@ -116,6 +125,9 @@ public class MatchFlow : NetworkBehaviour
         innocentsEjectes = 0;
         voteDesQuetes = false;
         retourLance = false;
+        informaticiensAuDepart = InformaticiensVivants();
+        pirateAuDepart = Manager != null && Manager.ServerPirate != null;
+        prochaineVerification = NetworkTime.time + 2.0;
         Debug.Log($"[Serveur] Partie lancée : {dureePartie} s avant le vote final");
     }
 
@@ -139,9 +151,12 @@ public class MatchFlow : NetworkBehaviour
         }
     }
 
-    // Fin de partie sans vote : les informaticiens gagnent, le pirate est révélé, puis retour au salon.
     [Server]
-    void ServerVictoireInformaticiens(string titre)
+    void ServerVictoireInformaticiens(string titre) => ServerFinSansVote(false, titre, "Toutes les quêtes ont été réalisées.");
+
+    // Fin de partie sans vote : le vainqueur est affiché, le pirate révélé, puis retour au salon.
+    [Server]
+    void ServerFinSansVote(bool pirateVainqueur, string titre, string motif)
     {
         votes.Clear();
         candidats.Clear();
@@ -157,12 +172,55 @@ public class MatchFlow : NetworkBehaviour
         PlayerRole pirate = Manager != null ? Manager.ServerPirate : null;
         var idPirate = pirate != null ? pirate.GetComponent<PlayerIdentity>() : null;
         pirateNom = pirate == null ? "" : (idPirate != null && !string.IsNullOrEmpty(idPirate.nom) ? idPirate.nom : "le pirate");
-        pirateGagne = false;
-        raison = "Toutes les quêtes ont été réalisées.";
+        pirateGagne = pirateVainqueur;
+        raison = motif;
+        Debug.Log($"[Serveur] Fin de partie sans vote : {(pirateVainqueur ? "LE PIRATE GAGNE" : "LES INFORMATICIENS GAGNENT")} ({motif})");
         resultatFinal = true;
         phase = PhasePartie.Resultat;
         finResultat = NetworkTime.time + dureeResultat;
     }
+
+    // Informaticiens encore en jeu : connectés et non éjectés.
+    int InformaticiensVivants()
+    {
+        int n = 0;
+        if (Manager == null) return 0;
+        foreach (var p in Manager.ServerPlayers)
+        {
+            if (p == null || p.ServerRole == Role.Pirate) continue;
+            var id = p.GetComponent<PlayerIdentity>();
+            if (id == null || !id.elimine) n++;
+        }
+        return n;
+    }
+
+    // Pendant la partie (une fois par seconde) : un départ peut aussi laisser le pirate seul face à un informaticien,
+    // ou faire partir le pirate lui-même.
+    [Server]
+    void ServerVerifierEffectifs()
+    {
+        if (!pirateAuDepart || Manager == null) return;
+        var progress = QuestProgress.Instance;
+        bool toutesQuetes = progress != null && progress.total > 0 && progress.done >= progress.total;
+
+        var pirate = Manager.ServerPirate;
+        if (pirate == null)
+        {
+            ServerFinSansVote(false, "Le pirate a quitté la partie", "Le pirate a quitté la partie : les informaticiens l'emportent.");
+            return;
+        }
+        int vivants = InformaticiensVivants();
+        if (informaticiensRestantsPourVictoirePirate > 0 && vivants < informaticiensAuDepart && vivants <= informaticiensRestantsPourVictoirePirate)
+        {
+            string titre = vivants == 1 ? "Il ne reste plus qu'un informaticien" : $"Il ne reste plus que {vivants} informaticiens";
+            if (toutesQuetes) ServerFinSansVote(false, titre, "Toutes les quêtes ont été réalisées.");
+            else ServerFinSansVote(true, titre, MotifEffectif(vivants));
+        }
+    }
+
+    static string MotifEffectif(int vivants) => vivants == 1
+        ? "Il ne reste plus qu'un informaticien face au pirate : le pirate l'emporte."
+        : $"Il ne reste plus que {vivants} informaticiens face au pirate : le pirate l'emporte.";
 
     // Appelé par PlayerIdentity.CmdReunion : un joueur a appuyé sur le bouton rouge.
     [Server]
@@ -196,10 +254,11 @@ public class MatchFlow : NetworkBehaviour
         switch (phase)
         {
             case PhasePartie.Partie:
-                if (now >= finPartie) ServerStartVote(false, "");
+                if (now >= finPartie) { ServerStartVote(false, ""); break; }
+                if (now >= prochaineVerification) { prochaineVerification = now + 1.0; ServerVerifierEffectifs(); }
                 break;
             case PhasePartie.Vote:
-                if (now >= finVote || TousOntVote()) ServerEndVote();
+                if (now >= finVote || (now >= ouvertureVotes && TousOntVote())) ServerEndVote();
                 break;
             case PhasePartie.Resultat:
                 if (now < finResultat) break;
@@ -225,7 +284,8 @@ public class MatchFlow : NetworkBehaviour
         motifVote = motif;
         titreResultat = "";
         debutVote = NetworkTime.time;
-        finVote = NetworkTime.time + dureeVote;
+        ouvertureVotes = NetworkTime.time + dureeReflexion;              // d'abord la réflexion…
+        finVote = ouvertureVotes + dureeVote;                            // …puis le vote
         votes.Clear();
         candidats.Clear();
 
@@ -246,7 +306,7 @@ public class MatchFlow : NetworkBehaviour
             });
             i++;
         }
-        Debug.Log($"[Serveur] {(urgence ? "RÉUNION" : "VOTE FINAL")} : {candidats.Count} joueur(s), {dureeVote} s");
+        Debug.Log($"[Serveur] {(urgence ? "RÉUNION" : "VOTE FINAL")} : {candidats.Count} joueur(s), {dureeReflexion} s de réflexion puis {dureeVote} s de vote");
     }
 
     // Appelé par PlayerIdentity.CmdVoter : un joueur vote pour une cible.
@@ -254,6 +314,7 @@ public class MatchFlow : NetworkBehaviour
     public void ServerReceiveVote(PlayerIdentity votant, uint cible)
     {
         if (phase != PhasePartie.Vote || votant == null) return;
+        if (NetworkTime.time < ouvertureVotes) return;                           // temps de réflexion : pas encore
         int iv = IndexCandidat(votant.netId), ic = IndexCandidat(cible);
         if (iv < 0 || ic < 0) return;                                        // pas dans la partie
         if (candidats[iv].elimine || candidats[ic].elimine) return;          // éjecté : ne vote pas, n'est pas votable
@@ -355,16 +416,19 @@ public class MatchFlow : NetworkBehaviour
         PlayerRole pirate = Manager != null ? Manager.ServerPirate : null;
         var idPirate = pirate != null ? pirate.GetComponent<PlayerIdentity>() : null;
 
-        // 4) Trop d'innocents éjectés (2 par défaut) et le pirate toujours là : la partie s'arrête tout de suite,
-        //    réunion d'urgence ou vote final. Le pirate gagne — sauf si toutes les quêtes étaient déjà faites :
-        //    les informaticiens avaient rempli leur objectif, ce sont eux qui l'emportent.
-        bool seuilEjections = innocentsEjectesPourVictoirePirate > 0 && pirate != null && !pirateEjecte
-                              && innocentsEjectes >= innocentsEjectesPourVictoirePirate;
-        if (seuilEjections)
+        // 4) Trop d'innocents éjectés (2 par défaut), ou plus qu'un informaticien face au pirate (un contre un), avec le
+        //    pirate toujours là : la partie s'arrête tout de suite, réunion d'urgence ou vote final. Le pirate gagne —
+        //    sauf si toutes les quêtes étaient déjà faites : les informaticiens avaient rempli leur objectif.
+        int infoVivants = InformaticiensVivants();
+        bool seuilEjections = innocentsEjectesPourVictoirePirate > 0 && innocentsEjectes >= innocentsEjectesPourVictoirePirate;
+        bool seuilEffectif = informaticiensRestantsPourVictoirePirate > 0 && infoVivants < informaticiensAuDepart
+                             && infoVivants <= informaticiensRestantsPourVictoirePirate;
+        if (pirate != null && !pirateEjecte && (seuilEjections || seuilEffectif))
         {
             pirateNom = idPirate != null && !string.IsNullOrEmpty(idPirate.nom) ? idPirate.nom : "le pirate";
             pirateGagne = !toutesQuetes;
             if (toutesQuetes) raison = "Toutes les quêtes ont été réalisées.";
+            else if (seuilEffectif) raison = MotifEffectif(infoVivants);
             else raison = innocentsEjectes == 1
                 ? "Un innocent a été éjecté : le pirate l'emporte."
                 : $"{innocentsEjectes} innocents ont été éjectés : le pirate l'emporte.";

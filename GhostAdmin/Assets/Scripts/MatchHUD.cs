@@ -7,6 +7,8 @@ using UnityEngine.UI;
 // AUCUN OBJET À CRÉER : créé automatiquement chez chaque joueur par MatchFlow.
 // Affiche le chrono de la partie (en haut à droite), le panneau de vote (plein écran, tout le monde
 // doit voter) et l'écran de résultat (qui est éjecté, qui gagne). Tout est lu dans MatchFlow.
+// Le vote se fait en deux clics (VOTER puis CONFIRMER) et il est DÉFINITIF : une fois confirmé, la carte choisie
+// reste marquée « VOTÉ — DÉFINITIF », les autres sont grisées et le serveur refuse de toute façon un second vote.
 public class MatchHUD : MonoBehaviour
 {
     // Réglages (l'objet est créé en code : modifie ici)
@@ -35,8 +37,9 @@ public class MatchHUD : MonoBehaviour
     TMP_Text voteTitre, voteCompte, voteSousTitre, voteEtat;
     RectTransform cartesRacine;
     readonly List<Carte> cartes = new List<Carte>();
-    uint monVote;
-    class Carte { public uint netId; public GameObject go; public Button bouton; public TMP_Text etiquette; public Image cadre; public Image boutonFond; }
+    uint monVote;          // le vote que j'ai confirmé (0 = pas encore)
+    uint voteEnAttente;    // la carte cliquée une fois, en attente de confirmation (0 = aucune)
+    class Carte { public uint netId; public GameObject go; public Button bouton; public TMP_Text etiquette; public Image cadre; public Image boutonFond; public CanvasGroup groupe; }
 
     // Résultat
     GameObject resultPanel;
@@ -81,7 +84,8 @@ public class MatchHUD : MonoBehaviour
         Placer(voteCompte.rectTransform, new Vector2(0.5f, 1f), new Vector2(0f, -95f), new Vector2(300f, 50f));
 
         voteSousTitre = Texte("SousTitre", votePanel.transform, "Tout le monde doit voter", 18f, Gris, FontStyles.Normal);
-        Placer(voteSousTitre.rectTransform, new Vector2(0.5f, 1f), new Vector2(0f, -140f), new Vector2(900f, 30f));
+        voteSousTitre.enableAutoSizing = true; voteSousTitre.fontSizeMax = 18f; voteSousTitre.fontSizeMin = 12f;
+        Placer(voteSousTitre.rectTransform, new Vector2(0.5f, 1f), new Vector2(0f, -140f), new Vector2(1000f, 30f));
 
         var racineGo = new GameObject("Cartes");
         racineGo.transform.SetParent(votePanel.transform, false);
@@ -91,7 +95,8 @@ public class MatchHUD : MonoBehaviour
         cartesRacine.sizeDelta = Vector2.zero;
 
         voteEtat = Texte("Etat", votePanel.transform, "", 20f, Jaune, FontStyles.Bold);
-        Placer(voteEtat.rectTransform, new Vector2(0.5f, 0f), new Vector2(0f, 50f), new Vector2(900f, 34f));
+        voteEtat.enableAutoSizing = true; voteEtat.fontSizeMax = 20f; voteEtat.fontSizeMin = 12f;   // phrases longues : 2 lignes max
+        Placer(voteEtat.rectTransform, new Vector2(0.5f, 0f), new Vector2(0f, 44f), new Vector2(1000f, 60f));
 
         votePanel.SetActive(false);
     }
@@ -127,6 +132,7 @@ public class MatchHUD : MonoBehaviour
     {
         foreach (var c in cartes) if (c.go != null) Destroy(c.go);
         cartes.Clear();
+        voteEnAttente = 0;
 
         int n = flow.candidats.Count;
         if (n == 0) return;
@@ -144,6 +150,7 @@ public class MatchHUD : MonoBehaviour
             carte.go = Boite("Carte " + cand.nom, cartesRacine, couleur, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f),
                              new Vector2((i - (n - 1) / 2f) * pas, 0f), new Vector2(largeur, HauteurCarte));
             carte.cadre = carte.go.GetComponent<Image>();
+            carte.groupe = carte.go.AddComponent<CanvasGroup>();      // pour griser toute la carte une fois le vote fait
             var fond = Boite("Fond", carte.go.transform, FondCarte, Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero);
             var fondRt = fond.GetComponent<RectTransform>();
             fondRt.offsetMin = new Vector2(4f, 4f); fondRt.offsetMax = new Vector2(-4f, -4f);
@@ -174,8 +181,9 @@ public class MatchHUD : MonoBehaviour
             couleursBouton.disabledColor = new Color(0.6f, 0.6f, 0.6f, 0.6f);
             carte.bouton.colors = couleursBouton;
             uint cible = cand.netId;
-            carte.bouton.onClick.AddListener(() => Voter(cible));
+            carte.bouton.onClick.AddListener(() => Cliquer(cible));
             carte.etiquette = Texte("Etiquette", bouton.transform, "VOTER", 18f, Color.white, FontStyles.Bold);
+            carte.etiquette.enableAutoSizing = true; carte.etiquette.fontSizeMax = 18f; carte.etiquette.fontSizeMin = 9f;
             Etirer(carte.etiquette.rectTransform);
 
             cartes.Add(carte);
@@ -203,12 +211,22 @@ public class MatchHUD : MonoBehaviour
 
     // ---------------------------------------------------------------- vote
 
-    void Voter(uint cible)
+    // Premier clic : la carte passe en « CONFIRMER » (on peut encore cliquer une autre carte).
+    // Second clic sur la même carte : le vote part au serveur, et plus rien ne peut le changer.
+    void Cliquer(uint cible)
     {
-        if (monVote != 0 || PlayerIdentity.Local == null) return;
+        if (monVote != 0 || PlayerIdentity.Local == null || PlayerIdentity.Local.elimine) return;   // un fantôme ne vote pas
+        if (voteEnAttente != cible) { voteEnAttente = cible; return; }
         monVote = cible;
+        voteEnAttente = 0;
         PlayerIdentity.Local.CmdVoter(cible);
-        Debug.Log("[Partie] J'ai voté (joueur " + cible + ")");
+        Debug.Log("[Partie] Vote confirmé (joueur " + cible + ") : définitif");
+    }
+
+    string NomCandidat(MatchFlow flow, uint netId)
+    {
+        int i = IndexCandidat(flow, netId);
+        return i >= 0 ? flow.candidats[i].nom : "ce joueur";
     }
 
     void MettreAJourVote(MatchFlow flow)
@@ -217,9 +235,22 @@ public class MatchHUD : MonoBehaviour
             ? "RÉUNION D'URGENCE" + (string.IsNullOrEmpty(flow.appelant) ? "" : " — appelée par " + flow.appelant)
             : (string.IsNullOrEmpty(flow.motifVote) ? "VOTE FINAL — Qui est le pirate ?" : flow.motifVote);
         voteTitre.color = flow.voteUrgence ? Rouge : (string.IsNullOrEmpty(flow.motifVote) ? Jaune : Vert);
+
+        // Temps de réflexion : les cartes sont visibles mais personne ne peut encore voter
+        bool reflexion = !flow.VoteOuvert;
+        int resteReflexion = Mathf.CeilToInt(flow.SecondesRestantes(flow.ouvertureVotes));
         float resteVote = flow.SecondesRestantes(flow.finVote);
-        voteCompte.text = Mathf.CeilToInt(resteVote) + " s";
-        voteCompte.color = resteVote <= 10f ? Rouge : Color.white;
+        if (reflexion)
+        {
+            voteCompte.text = resteReflexion + " s";
+            voteCompte.color = Gris;
+            voteEnAttente = 0;
+        }
+        else
+        {
+            voteCompte.text = Mathf.CeilToInt(resteVote) + " s";
+            voteCompte.color = resteVote <= 10f ? Rouge : Color.white;
+        }
 
         uint moi = PlayerIdentity.Local != null ? PlayerIdentity.Local.netId : 0;
         int votants = 0, ontVote = 0;
@@ -231,8 +262,12 @@ public class MatchHUD : MonoBehaviour
             if (c.aVote) ontVote++;
             if (c.netId == moi && c.aVote) jaiVote = true;
         }
-        voteSousTitre.text = $"Tout le monde doit voter   —   {ontVote} / {votants} ont voté";
+        voteSousTitre.text = reflexion
+            ? $"Temps de réflexion : discutez, le vote s'ouvre dans {resteReflexion} s"
+            : $"Tout le monde doit voter — un seul vote chacun, définitif   —   {ontVote} / {votants} ont voté";
 
+        bool verrou = monVote != 0 || jaiVote;                    // mon vote est parti : plus rien ne bouge
+        bool spectateur = PlayerIdentity.Local != null && PlayerIdentity.Local.elimine;   // fantôme : il regarde, sans voter
         foreach (var carte in cartes)
         {
             int ic = IndexCandidat(flow, carte.netId);
@@ -240,16 +275,49 @@ public class MatchHUD : MonoBehaviour
             var cand = flow.candidats[ic];
             bool moiMeme = cand.netId == moi;
             bool votable = !cand.elimine && (flow.VoterPourSoiMeme || !moiMeme);
-            bool choisi = jaiVote && monVote == cand.netId;
+            bool choisi = monVote == cand.netId;                                   // ma cible, confirmée
+            bool enAttente = !verrou && voteEnAttente == cand.netId;               // cliquée une fois, pas encore confirmée
 
-            carte.bouton.interactable = votable && !jaiVote && monVote == 0;
-            carte.etiquette.text = cand.elimine ? "ÉJECTÉ" : choisi ? "VOTÉ" : (!votable ? "(VOUS)" : "VOTER");
-            carte.cadre.color = choisi ? Jaune : CouleurCandidat(cand);
-            carte.boutonFond.color = choisi ? Jaune : FondBouton;
-            carte.etiquette.color = choisi ? Color.black : Color.white;
+            carte.bouton.interactable = votable && !verrou && !spectateur && !reflexion;
+            carte.etiquette.text = cand.elimine ? "ÉJECTÉ"
+                                 : choisi ? "VOTÉ — DÉFINITIF"
+                                 : !votable ? "(VOUS)"
+                                 : enAttente ? "CONFIRMER"
+                                 : (verrou || spectateur) ? "—" : "VOTER";
+            bool surligne = choisi || enAttente;
+            carte.cadre.color = surligne ? Jaune : CouleurCandidat(cand);
+            carte.boutonFond.color = surligne ? Jaune : FondBouton;
+            carte.etiquette.color = surligne ? Color.black : Color.white;
+            carte.groupe.alpha = verrou && !choisi ? 0.35f : 1f;                   // une fois voté : les autres cartes s'effacent
         }
 
-        voteEtat.text = jaiVote ? "Vous avez voté. En attente des autres…" : (monVote != 0 ? "Vote envoyé…" : "Choisissez un joueur");
+        if (spectateur)
+        {
+            voteEtat.text = "Vous avez été éjecté : vous assistez au vote sans voter.";
+            voteEtat.color = Gris;
+        }
+        else if (reflexion)
+        {
+            voteEtat.text = $"Prenez le temps de réfléchir : les votes s'ouvrent dans {resteReflexion} s.";
+            voteEtat.color = Gris;
+        }
+        else if (verrou)
+        {
+            voteEtat.text = monVote != 0
+                ? $"Vote enregistré contre {NomCandidat(flow, monVote)} — DÉFINITIF, il ne peut plus être modifié. En attente des autres…"
+                : "Vote enregistré — définitif, il ne peut plus être modifié. En attente des autres…";
+            voteEtat.color = Vert;
+        }
+        else if (voteEnAttente != 0)
+        {
+            voteEtat.text = $"Voter contre {NomCandidat(flow, voteEnAttente)} ? Cliquez sur CONFIRMER — ce vote sera DÉFINITIF (impossible de le changer).";
+            voteEtat.color = Jaune;
+        }
+        else
+        {
+            voteEtat.text = "Choisissez un joueur — un seul vote, définitif";
+            voteEtat.color = Jaune;
+        }
     }
 
     static int IndexCandidat(MatchFlow flow, uint netId)
@@ -311,6 +379,7 @@ public class MatchHUD : MonoBehaviour
                 chronoTexte.text = Format(reste);
                 chronoTexte.color = reste <= 30f ? Rouge : Color.white;
                 monVote = 0;
+                voteEnAttente = 0;
                 break;
 
             case PhasePartie.Vote:
