@@ -3,18 +3,18 @@ using Mirror;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
-// SUR LE PREFAB player1. Détecte l'objet à portée et lit la touche E tout seul.
-// Informaticien : E ouvre la mission de SA quête. Pirate : E ouvre le panneau de sabotage.
-// Tout le monde : E sur le bouton rouge (MeetingButton) appelle une réunion d'urgence.
+// SUR LE PREFAB player1. DÃ©tecte l'objet Ã  portÃ©e et lit la touche E tout seul.
+// Informaticien : E ouvre la mission de SA quÃªte. Pirate : E ouvre le panneau de sabotage.
+// Tout le monde : E sur le bouton rouge (MeetingButton) appelle une rÃ©union d'urgence.
 //
-// La détection est refaite À CHAQUE IMAGE (et non dans OnTriggerStay2D, qu'Unity cesse d'appeler dès que le
+// La dÃ©tection est refaite Ã€ CHAQUE IMAGE (et non dans OnTriggerStay2D, qu'Unity cesse d'appeler dÃ¨s que le
 // joueur reste immobile ~0,5 s) : un bureau qui devient sabotable pendant que le pirate attend dessus, ou la
-// recharge du sabotage qui se termine, affichent leur « E » tout de suite, sans avoir à bouger.
+// recharge du sabotage qui se termine, affichent leur Â« E Â» tout de suite, sans avoir Ã  bouger.
 public class PlayerInteraction : NetworkBehaviour
 {
     [SerializeField] Key toucheInteraction = Key.E;   // modifiable dans l'Inspector
 
-    Interactable current;        // l'objet actuellement surligné (null si aucun)
+    Interactable current;        // l'objet actuellement surlignÃ© (null si aucun)
     MeetingButton boutonCourant; // le bouton rouge, quand je suis dessus
     Interactable proche;         // le bureau le plus proche dont je suis dans la zone, utilisable ou non (pour les messages)
     PlayerQuests quests;
@@ -34,24 +34,24 @@ public class PlayerInteraction : NetworkBehaviour
         filtre = ContactFilter2D.noFilter;                // toutes les couches, zones (triggers) comprises
     }
 
-    public override void OnStartLocalPlayer() => QuestSession.Reinitialiser();   // jamais un panneau « resté ouvert » d'une partie précédente
+    public override void OnStartLocalPlayer() => QuestSession.Reinitialiser();   // jamais un panneau Â« restÃ© ouvert Â» d'une partie prÃ©cÃ©dente
 
     void OnDisable() { Liberer(); }
 
     bool Pirate => role != null && role.MyRole == Role.Pirate;
     bool Ejecte => identity != null && identity.elimine;
-    // Éjecté : un informaticien continue ses quêtes (réglage « Fantomes Font Leurs Quetes » du NetworkManager) ; rien d'autre
+    // Ã‰jectÃ© : un informaticien continue ses quÃªtes (rÃ©glage Â« Fantomes Font Leurs Quetes Â» du NetworkManager) ; rien d'autre
     bool Bloque => Ejecte && (Pirate || !GhostAdminNetworkManager.FantomesActifs);
 
     // L'objet est-il "utilisable" par moi en ce moment ?
     bool Valid(Interactable it)
     {
         if (QuestSession.IsOpen || Bloque) return false;
-        if (!MatchFlow.EnPartie) return false;                       // chrono terminé, vote ou résultat : plus d'interaction
+        if (!MatchFlow.EnPartie) return false;                       // chrono terminÃ©, vote ou rÃ©sultat : plus d'interaction
         if (Pirate)
         {
-            // Pirate : seulement là où une mission a été réalisée (contour rouge). Pendant la recharge du sabotage,
-            // le E reste affiché : appuyer donne le temps restant au lieu de ne rien faire.
+            // Pirate : seulement lÃ  oÃ¹ une mission a Ã©tÃ© rÃ©alisÃ©e (contour rouge). Pendant la recharge du sabotage,
+            // le E reste affichÃ© : appuyer donne le temps restant au lieu de ne rien faire.
             var p = QuestProgress.Instance;
             if (it.sabotagePanel == null) return false;
             return p == null || p.EstFaite(it.questId);
@@ -61,7 +61,7 @@ public class PlayerInteraction : NetworkBehaviour
 
     bool BoutonValide() => !QuestSession.IsOpen && !Ejecte && MatchFlow.EnPartie;
 
-    // ---------------------------------------------------------------- détection (chaque image)
+    // ---------------------------------------------------------------- dÃ©tection (chaque image)
 
     void Detecter()
     {
@@ -85,7 +85,7 @@ public class PlayerInteraction : NetworkBehaviour
 
         foreach (var c in resultats)
         {
-            if (c == null || c.transform.IsChildOf(transform)) continue;         // pas moi-même
+            if (c == null || c.transform.IsChildOf(transform)) continue;         // pas moi-mÃªme
             var bt = c.GetComponentInParent<MeetingButton>();
             if (bt != null) { bouton = bt; continue; }
             var it = c.GetComponentInParent<Interactable>();
@@ -99,9 +99,9 @@ public class PlayerInteraction : NetworkBehaviour
         if (plusProche != proche && plusProche != null)
         {
             if (Pirate)
-                Debug.Log($"[Quêtes] Zone atteinte : {plusProche.name} (quête {plusProche.questId}) — je suis le pirate, mission réalisée ici : {QuestProgress.Instance != null && QuestProgress.Instance.EstFaite(plusProche.questId)}, panneau de sabotage assigné : {plusProche.sabotagePanel != null}");
+                Debug.Log($"[QuÃªtes] Zone atteinte : {plusProche.name} (quÃªte {plusProche.questId}) â€” je suis le pirate, mission rÃ©alisÃ©e ici : {QuestProgress.Instance != null && QuestProgress.Instance.EstFaite(plusProche.questId)}, panneau de sabotage assignÃ© : {plusProche.sabotagePanel != null}");
             else
-                Debug.Log($"[Quêtes] Zone atteinte : {plusProche.name} (quête {plusProche.questId}) — à moi : {quests.IsAssigned(plusProche.questId)}, déjà faite : {quests.IsDone(plusProche.questId)}, panneau assigné : {plusProche.questPanel != null}");
+                Debug.Log($"[QuÃªtes] Zone atteinte : {plusProche.name} (quÃªte {plusProche.questId}) â€” Ã  moi : {quests.IsAssigned(plusProche.questId)}, dÃ©jÃ  faite : {quests.IsDone(plusProche.questId)}, panneau assignÃ© : {plusProche.questPanel != null}");
         }
         proche = plusProche;
 
@@ -143,14 +143,14 @@ public class PlayerInteraction : NetworkBehaviour
 
         if (boutonCourant != null && BoutonValide())
         {
-            Debug.Log("[Partie] Touche " + toucheInteraction + " : réunion d'urgence demandée");
-            if (identity != null) identity.CmdReunion();            // le serveur décide (cooldown, nombre d'appels)
+            Debug.Log("[Partie] Touche " + toucheInteraction + " : rÃ©union d'urgence demandÃ©e");
+            if (identity != null) identity.CmdReunion();            // le serveur dÃ©cide (cooldown, nombre d'appels)
             return;
         }
 
         if (current != null)
         {
-            Debug.Log("[Quêtes] Touche " + toucheInteraction + " : " + (Pirate ? "sabotage" : "mission") + " sur " + current.name);
+            Debug.Log("[QuÃªtes] Touche " + toucheInteraction + " : " + (Pirate ? "sabotage" : "mission") + " sur " + current.name);
             if (Pirate)
             {
                 var p = QuestProgress.Instance;
@@ -169,10 +169,10 @@ public class PlayerInteraction : NetworkBehaviour
         // E dans la zone d'un bureau inutilisable : on dit pourquoi, au lieu de ne rien faire
         if (proche == null || Bloque || !MatchFlow.EnPartie) return;
         if (Pirate)
-            QuestBar.Notify(proche.sabotagePanel == null ? "Rien à saboter ici" : "Aucune mission réalisée ici : rien à saboter");
+            QuestBar.Notify(proche.sabotagePanel == null ? "Rien Ã  saboter ici" : "Aucune mission rÃ©alisÃ©e ici : rien Ã  saboter");
         else if (!quests.IsAssigned(proche.questId))
-            QuestBar.Notify("Ce n'est pas une de tes quêtes");
+            QuestBar.Notify("Ce n'est pas une de tes quÃªtes");
         else if (quests.IsDone(proche.questId))
-            QuestBar.Notify("Tu as déjà fait cette quête");
+            QuestBar.Notify("Tu as dÃ©jÃ  fait cette quÃªte");
     }
 }
