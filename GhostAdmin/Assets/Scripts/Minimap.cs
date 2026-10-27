@@ -307,6 +307,7 @@ public class Minimap : MonoBehaviour
 
         // Les autres : dernière position où je les ai vus
         var camJeu = CameraDuJeu();
+        bool jeSuisFantome = idLocal != null && idLocal.elimine;
         foreach (var p in joueurs)
         {
             if (p == null || p == idLocal) continue;
@@ -315,8 +316,13 @@ public class Minimap : MonoBehaviour
                 t = new Trace { marqueur = Marqueur("Trace", p.Couleur, TailleAutre) };
                 traces[p.netId] = t;
             }
+            if (p.elimine && !jeSuisFantome)                              // un fantôme n'existe plus pour les vivants
+            {
+                t.marqueur.gameObject.SetActive(false);
+                continue;
+            }
             bool vu = false;
-            if (camJeu != null && !p.elimine)
+            if (camJeu != null)
             {
                 Vector3 vp = camJeu.WorldToViewportPoint(p.transform.position);
                 vu = vp.z > 0f && vp.x >= 0f && vp.x <= 1f && vp.y >= 0f && vp.y <= 1f

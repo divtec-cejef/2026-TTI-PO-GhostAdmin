@@ -54,7 +54,9 @@ public class QuestArrows : MonoBehaviour
         var role = local.GetComponent<PlayerRole>();
         bool pirate = role != null && role.MyRole == Role.Pirate;
         var progress = QuestProgress.Instance;
-        bool hudVisible = (role == null || role.matchStarted) && !QuestSession.IsOpen && MatchFlow.EnPartie;
+        // Éjecté : un informaticien garde ses quêtes (contours, flèches) si le NetworkManager le permet ; sinon plus rien
+        bool fantome = PlayerIdentity.JeSuisFantome && (pirate || !GhostAdminNetworkManager.FantomesActifs);
+        bool hudVisible = (role == null || role.matchStarted) && !QuestSession.IsOpen && MatchFlow.EnPartie && !fantome;
         Color couleur = pirate ? CouleurPirate : CouleurInformaticien;
 
         Vector2 centre = new Vector2(Screen.width, Screen.height) * 0.5f;
@@ -64,9 +66,9 @@ public class QuestArrows : MonoBehaviour
             if (it == null) continue;
 
             // Informaticien : MA quête, pas encore faite. Pirate : une mission a été réalisée ici (sabotage possible).
-            bool pending = pirate
+            bool pending = !fantome && (pirate
                 ? (progress != null && progress.EstFaite(it.questId) && it.sabotagePanel != null)
-                : (local.IsAssigned(it.questId) && !local.IsDone(it.questId));
+                : (local.IsAssigned(it.questId) && !local.IsDone(it.questId)));
             it.SetOutline(pending, couleur);                 // contour tant que c'est à faire (ou à saboter)
 
             if (!pending || !hudVisible) { ShowArrow(it, false); continue; }
