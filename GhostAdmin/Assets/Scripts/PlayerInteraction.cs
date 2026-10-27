@@ -6,6 +6,8 @@ using UnityEngine.InputSystem;
 // SUR LE PREFAB player1. Détecte l'objet à portée et lit la touche E tout seul.
 // Informaticien : E ouvre la mission de SA quête. Pirate : E ouvre le panneau de sabotage.
 // Tout le monde : E sur le bouton rouge (MeetingButton) appelle une réunion d'urgence.
+// Pirate : E sur un évent (Vent) → il entre dedans (caché, immobile) ; flèches gauche / droite : il passe à un autre
+// évent ; E ou Échap : il ressort. Les évents sont ignorés par les informaticiens et les fantômes.
 //
 // La détection est refaite À CHAQUE IMAGE (et non dans OnTriggerStay2D, qu'Unity cesse d'appeler dès que le
 // joueur reste immobile ~0,5 s) : un bureau qui devient sabotable pendant que le pirate attend dessus, ou la
@@ -13,10 +15,14 @@ using UnityEngine.InputSystem;
 public class PlayerInteraction : NetworkBehaviour
 {
     [SerializeField] Key toucheInteraction = Key.E;   // modifiable dans l'Inspector
+    [SerializeField] float dureeSortieEvent = 0.3f;   // petit délai en sortant d'un évent (le temps que le réseau replace le pirate)
 
     Interactable current;        // l'objet actuellement surligné (null si aucun)
     MeetingButton boutonCourant; // le bouton rouge, quand je suis dessus
     Interactable proche;         // le bureau le plus proche dont je suis dans la zone, utilisable ou non (pour les messages)
+    Vent ventCourant;            // l'évent surligné (pirate), quand je suis dessus
+    Vent ventOccupe;             // l'évent dans lequel je suis (pirate)
+    float sortieEventA = -1f;    // heure à laquelle la sortie de l'évent se termine (-1 = pas en train de sortir)
     PlayerQuests quests;
     PlayerRole role;
     PlayerIdentity identity;
@@ -46,7 +52,7 @@ public class PlayerInteraction : NetworkBehaviour
     // L'objet est-il "utilisable" par moi en ce moment ?
     bool Valid(Interactable it)
     {
-        if (QuestSession.IsOpen || Bloque) return false;
+        if (QuestSession.IsOpen || Bloque || DansEvent) return false;
         if (!MatchFlow.EnPartie) return false;                       // chrono terminé, vote ou résultat : plus d'interaction
         if (Pirate)
         {
@@ -59,7 +65,11 @@ public class PlayerInteraction : NetworkBehaviour
         return quests.IsAssigned(it.questId) && !quests.IsDone(it.questId);
     }
 
-    bool BoutonValide() => !QuestSession.IsOpen && !Ejecte && MatchFlow.EnPartie;
+    bool BoutonValide() => !QuestSession.IsOpen && !Ejecte && MatchFlow.EnPartie && !DansEvent;
+
+    // Les évents : pirate vivant, pendant la partie, pas déjà dedans.
+    bool DansEvent => identity != null && identity.EnEvent;
+    bool VentValide() => Pirate && !Ejecte && MatchFlow.EnPartie && !QuestSession.IsOpen && !DansEvent;
 
     // ---------------------------------------------------------------- détection (chaque image)
 
@@ -80,14 +90,22 @@ public class PlayerInteraction : NetworkBehaviour
         else Physics2D.OverlapCircle(transform.position, 0.35f, filtre, resultats);
 
         Interactable meilleur = null, plusProche = null;
-        float dMeilleur = float.MaxValue, dProche = float.MaxValue;
+        float dMeilleur = float.MaxValue, dProche = float.MaxValue, dVent = float.MaxValue;
         MeetingButton bouton = null;
+        Vent vent = null;
 
         foreach (var c in resultats)
         {
             if (c == null || c.transform.IsChildOf(transform)) continue;         // pas moi-même
             var bt = c.GetComponentInParent<MeetingButton>();
             if (bt != null) { bouton = bt; continue; }
+            var v = c.GetComponentInParent<Vent>();
+            if (v != null)
+            {
+                float dv = (v.transform.position - transform.position).sqrMagnitude;
+                if (dv < dVent) { dVent = dv; vent = v; }
+                continue;
+            }
             var it = c.GetComponentInParent<Interactable>();
             if (it == null) continue;
 
@@ -104,6 +122,19 @@ public class PlayerInteraction : NetworkBehaviour
                 Debug.Log($"[Quêtes] Zone atteinte : {plusProche.name} (quête {plusProche.questId}) — à moi : {quests.IsAssigned(plusProche.questId)}, déjà faite : {quests.IsDone(plusProche.questId)}, panneau assigné : {plusProche.questPanel != null}");
         }
         proche = plusProche;
+
+        // Un évent et un bureau utilisables en même temps : le plus proche l'emporte (un seul E à l'écran)
+        var nouveauVent = vent != null && VentValide() ? vent : null;
+        if (nouveauVent != null && meilleur != null)
+        {
+            if (dVent <= dMeilleur) meilleur = null; else nouveauVent = null;
+        }
+        if (nouveauVent != ventCourant)
+        {
+            if (ventCourant != null) ventCourant.SetFocused(false);
+            ventCourant = nouveauVent;
+            if (ventCourant != null) ventCourant.SetFocused(true);
+        }
 
         if (meilleur != current)
         {
@@ -125,9 +156,72 @@ public class PlayerInteraction : NetworkBehaviour
     {
         if (current != null) current.SetFocused(false);
         if (boutonCourant != null) boutonCourant.SetFocused(false);
+        if (ventCourant != null) ventCourant.SetFocused(false);
         current = null;
         boutonCourant = null;
+        ventCourant = null;
         proche = null;
+    }
+
+    // ---------------------------------------------------------------- les évents (pirate)
+
+    void EntrerEvent(Vent v)
+    {
+        ventOccupe = v;
+        identity.TeleporterLocal(v.PositionDedans);                   // pile sur l'évent, pour en ressortir au bon endroit
+        identity.EntrerDansEvent(true);                               // caché et immobile, chez tout le monde
+        Debug.Log("[Évents] Entrée dans " + v.name);
+        AfficherAideEvent();
+    }
+
+    void ChangerEvent(int sens)
+    {
+        var suivant = Vent.Suivant(ventOccupe, sens);
+        if (suivant == null || suivant == ventOccupe) return;
+        ventOccupe = suivant;
+        identity.TeleporterLocal(suivant.PositionDedans);             // toujours caché : personne ne voit le trajet
+        Debug.Log("[Évents] Passage à " + suivant.name);
+        AfficherAideEvent();
+    }
+
+    void CommencerSortie(bool immediat)
+    {
+        if (ventOccupe != null) identity.TeleporterLocal(ventOccupe.PositionSortie);
+        sortieEventA = immediat ? 0f : Time.time + dureeSortieEvent; // on reste caché un court instant, le temps que le réseau suive
+        QuestBar.Permanent("");
+        if (immediat) TerminerSortie();
+    }
+
+    void TerminerSortie()
+    {
+        sortieEventA = -1f;
+        ventOccupe = null;
+        identity.EntrerDansEvent(false);
+        Debug.Log("[Évents] Sortie");
+    }
+
+    void AfficherAideEvent()
+    {
+        if (ventOccupe == null) { QuestBar.Permanent(""); return; }
+        string ou = ventOccupe.Etiquette();
+        QuestBar.Permanent(Vent.Nombre > 1
+            ? $"Dans l'évent : {ou}   —   flèches gauche / droite : changer d'évent   ·   {toucheInteraction} ou Échap : sortir"
+            : $"Dans l'évent : {ou}   —   {toucheInteraction} ou Échap : sortir");
+    }
+
+    // Dans un évent : flèches pour changer d'évent, E ou Échap pour sortir. Vote, fin de partie ou éjection : on sort d'office.
+    void GererEvent(Keyboard clavier)
+    {
+        if (sortieEventA >= 0f)
+        {
+            if (Time.time >= sortieEventA) TerminerSortie();
+            return;
+        }
+        if (!MatchFlow.EnPartie || Ejecte) { CommencerSortie(true); return; }
+        if (clavier == null) return;
+        if (clavier.leftArrowKey.wasPressedThisFrame) ChangerEvent(-1);
+        else if (clavier.rightArrowKey.wasPressedThisFrame) ChangerEvent(+1);
+        else if (clavier[toucheInteraction].wasPressedThisFrame || clavier.escapeKey.wasPressedThisFrame) CommencerSortie(false);
     }
 
     // ---------------------------------------------------------------- la touche E
@@ -137,9 +231,17 @@ public class PlayerInteraction : NetworkBehaviour
         if (!isLocalPlayer) return;
         Detecter();
 
+        if (ventOccupe != null || sortieEventA >= 0f) { GererEvent(Keyboard.current); return; }
+
         if (QuestSession.IsOpen) return;
         var clavier = Keyboard.current;
         if (clavier == null || !clavier[toucheInteraction].wasPressedThisFrame) return;
+
+        if (ventCourant != null && VentValide())
+        {
+            EntrerEvent(ventCourant);
+            return;
+        }
 
         if (boutonCourant != null && BoutonValide())
         {

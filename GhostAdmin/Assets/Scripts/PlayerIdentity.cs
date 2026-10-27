@@ -1,11 +1,14 @@
-﻿using Mirror;
+﻿using System.Collections.Generic;
+using Mirror;
 using TMPro;
+using Unity.Cinemachine;
 using UnityEngine;
 
 // SUR LE PREFAB player1. Qui est ce joueur : son pseudo, son numéro (→ sa couleur) et s'il a été éjecté.
 // Affiche son nom au-dessus de sa tête (créé en code, rien à ajouter dans le prefab) et envoie son vote.
 // Éjecté = fantôme : il continue de se déplacer (les murs l'arrêtent, les joueurs non), ne peut plus rien faire,
 // et les joueurs vivants ne le voient pas du tout ; seuls les autres fantômes (et lui-même) le voient, en transparence.
+// Dans un évent (pirate, voir Vent et PlayerInteraction) : caché pour tout le monde et immobile, le temps d'y être.
 public class PlayerIdentity : NetworkBehaviour
 {
     public static PlayerIdentity Local { get; private set; }
@@ -39,6 +42,7 @@ public class PlayerIdentity : NetworkBehaviour
     [SyncVar(hook = nameof(IndexChange))] public int indexJoueur;
     [SyncVar(hook = nameof(ElimineChange))] public bool elimine;
     [SyncVar(hook = nameof(SkinChange))] public int skin = -1;      // personnage choisi dans le salon (Skins.Liste)
+    [SyncVar(hook = nameof(EventChange))] public bool dansEvent;    // le pirate est dans un évent : caché pour tous
 
     TextMeshPro etiquette;
     SpriteRenderer sr;
@@ -50,6 +54,12 @@ public class PlayerIdentity : NetworkBehaviour
     public bool FantomeSeDeplace => fantomeSeDeplace;                    // lu par Player
     public static bool JeSuisFantome => Local != null && Local.elimine;   // MON joueur a été éjecté
     bool physiqueFantomeFaite;
+
+    // Dans un évent : chez moi, tout de suite (sans attendre le serveur) ; chez les autres, dès que le serveur le dit.
+    bool eventLocal;
+    public bool EnEvent => dansEvent || eventLocal;
+    public static bool JeSuisDansUnEvent => Local != null && Local.EnEvent;
+    readonly Dictionary<Collider2D, bool> triggersAvantEvent = new Dictionary<Collider2D, bool>();
 
     void Awake()
     {
@@ -110,12 +120,64 @@ public class PlayerIdentity : NetworkBehaviour
     [TargetRpc]
     void TargetTeleporter(Vector3 position) => Placer(position);
 
+    // Téléportation décidée chez moi (évents) : je commande mes déplacements, le réseau suit.
+    public void TeleporterLocal(Vector3 position)
+    {
+        if (!isLocalPlayer) return;
+        Placer(position);
+    }
+
     void Placer(Vector3 position)
     {
+        Vector3 avant = transform.position;
         var rb = GetComponent<Rigidbody2D>();
         if (rb != null) { rb.linearVelocity = Vector2.zero; rb.position = position; }
         transform.position = position;
         Physics2D.SyncTransforms();
+
+        // La caméra saute avec moi au lieu de traverser toute la carte en glissant
+        if (isLocalPlayer)
+        {
+            var vcam = FindAnyObjectByType<CinemachineCamera>();
+            if (vcam != null) vcam.OnTargetObjectWarped(transform, position - avant);
+        }
+    }
+
+    // ---- Évents (pirate) ----
+
+    // Chez moi : j'entre (ou je sors) tout de suite, et je préviens le serveur, qui le répercute à tous.
+    public void EntrerDansEvent(bool dedans)
+    {
+        if (!isLocalPlayer) return;
+        eventLocal = dedans;
+        CmdDansEvent(dedans);
+        Rafraichir();
+    }
+
+    [Command]
+    void CmdDansEvent(bool dedans)
+    {
+        var role = GetComponent<PlayerRole>();
+        if (role == null || role.ServerRole != Role.Pirate) return;   // les évents sont réservés au pirate
+        if (elimine) return;
+        dansEvent = dedans;
+    }
+
+    void EventChange(bool o, bool n) => Rafraichir();
+
+    // Dans l'évent, mes colliders deviennent des zones (personne ne bute sur un joueur invisible) ; en sortant, retour à la normale.
+    void AppliquerPhysiqueEvent(bool dedans)
+    {
+        if (dedans)
+        {
+            if (triggersAvantEvent.Count > 0) return;
+            foreach (var c in GetComponentsInChildren<Collider2D>()) { triggersAvantEvent[c] = c.isTrigger; c.isTrigger = true; }
+        }
+        else
+        {
+            foreach (var kv in triggersAvantEvent) if (kv.Key != null) kv.Key.isTrigger = kv.Value;
+            triggersAvantEvent.Clear();
+        }
     }
 
     // Un message pour ce joueur seulement (sous la barre de quêtes).
@@ -168,8 +230,9 @@ public class PlayerIdentity : NetworkBehaviour
 
     void Rafraichir()
     {
-        // Un fantôme n'est vu que par les fantômes (et par lui-même) : pour les vivants, il n'existe plus à l'écran
-        bool visible = !elimine || JeSuisFantome;
+        // Un fantôme n'est vu que par les fantômes (et par lui-même) : pour les vivants, il n'existe plus à l'écran.
+        // Dans un évent : caché pour tout le monde, lui compris.
+        bool visible = (!elimine || JeSuisFantome) && !EnEvent;
 
         if (etiquette != null)
         {
@@ -186,6 +249,7 @@ public class PlayerIdentity : NetworkBehaviour
         foreach (var r in GetComponentsInChildren<SpriteRenderer>(true))        // le corps, et une éventuelle ombre
             if (r.enabled != visible) r.enabled = visible;
         if (elimine) AppliquerPhysiqueFantome();
+        else AppliquerPhysiqueEvent(EnEvent);
     }
 
     // Un fantôme ne doit gêner personne (un obstacle invisible serait injouable) : il ignore les autres joueurs,
