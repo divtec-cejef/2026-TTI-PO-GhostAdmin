@@ -316,7 +316,7 @@ public class Minimap : MonoBehaviour
                 t = new Trace { marqueur = Marqueur("Trace", p.Couleur, TailleAutre) };
                 traces[p.netId] = t;
             }
-            if (p.elimine && !jeSuisFantome)                              // un fantôme n'existe plus pour les vivants
+            if ((p.elimine && !jeSuisFantome) || p.EnEvent)               // un fantôme n'existe plus pour les vivants ; dans un évent, on ne le voit pas
             {
                 t.marqueur.gameObject.SetActive(false);
                 continue;

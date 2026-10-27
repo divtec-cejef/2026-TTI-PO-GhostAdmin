@@ -23,6 +23,7 @@ public class QuestBar : MonoBehaviour
     static readonly Color CouleurMessage = new Color(1f, 0.35f, 0.3f, 1f);
 
     TMP_Text message;
+    TMP_Text permanent;         // ligne d'aide qui reste affichée (ex. : dans un évent), sous le message
     TMP_Text etatSabotage;      // pirate : « Sabotage : prêt » / « Sabotage dans 12 s », sous la barre
     float messageJusqua = -1f;
 
@@ -117,6 +118,24 @@ public class QuestBar : MonoBehaviour
         Contourer(message);
         msgGo.SetActive(false);
 
+        // Ligne d'aide permanente (ex. : « Dans l'évent — flèches : changer d'évent · E : sortir »)
+        var permGo = new GameObject("AidePermanente");
+        permGo.transform.SetParent(transform, false);
+        var permRect = permGo.AddComponent<RectTransform>();
+        permRect.anchorMin = new Vector2(0.15f, 1f);
+        permRect.anchorMax = new Vector2(0.85f, 1f);
+        permRect.pivot = new Vector2(0.5f, 1f);
+        permRect.anchoredPosition = new Vector2(0f, -(MargeHaut + Hauteur + 34f));
+        permRect.sizeDelta = new Vector2(0f, 24f);
+        permanent = permGo.AddComponent<TextMeshProUGUI>();
+        permanent.alignment = TextAlignmentOptions.Center;
+        permanent.fontSize = 15f;
+        permanent.fontStyle = FontStyles.Bold;
+        permanent.color = new Color(1f, 0.6f, 0.55f);
+        permanent.raycastTarget = false;
+        Contourer(permanent);
+        permGo.SetActive(false);
+
         // État du sabotage (pirate seulement), juste à droite de la barre : « Sabotage : prêt » / « Sabotage dans 12 s »
         var sabGo = new GameObject("EtatSabotage");
         sabGo.transform.SetParent(transform, false);
@@ -146,6 +165,15 @@ public class QuestBar : MonoBehaviour
         if (EpaisseurContour <= 0f) return;
         t.outlineWidth = EpaisseurContour;
         t.outlineColor = ContourTexte;
+    }
+
+    // Une ligne d'aide qui reste affichée tant qu'on ne la remplace pas ("" = retirée).
+    public static void Permanent(string texte)
+    {
+        if (instance == null) return;
+        bool on = !string.IsNullOrEmpty(texte);
+        instance.permanent.text = on ? texte : "";
+        if (instance.permanent.gameObject.activeSelf != on) instance.permanent.gameObject.SetActive(on);
     }
 
     // Affiche un message quelques secondes sous la barre (appelé par PlayerQuests).

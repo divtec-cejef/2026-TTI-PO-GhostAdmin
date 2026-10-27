@@ -76,6 +76,33 @@ public static class Skins
         return s;
     }
 
+    static readonly Dictionary<(Texture2D, int, int), Sprite> cases = new Dictionary<(Texture2D, int, int), Sprite>();
+
+    // Une case précise (colonne, ligne) de la planche du personnage « skin », à la taille et au pivot de « reference »
+    // (une case normale du personnage). Sans planche pour ce skin : la même case sur la planche de « reference ».
+    public static Sprite Case(int skin, int colonne, int ligne, Sprite reference)
+    {
+        Texture2D t = Feuille(skin);
+        if (t == null && reference != null) t = reference.texture;
+        if (t == null) return null;
+        if (cases.TryGetValue((t, colonne, ligne), out var s)) return s;
+
+        float cw = (float)t.width / Colonnes, ch = (float)t.height / Lignes;
+        var r = new Rect(colonne * cw, t.height - (ligne + 1) * ch, cw, ch);
+        if (r.xMax > t.width + 0.5f || r.y < -0.5f) return null;
+        Vector2 pivot = new Vector2(0.5f, 0.5f);
+        float ppu = 100f;
+        if (reference != null)
+        {
+            pivot = new Vector2(reference.pivot.x / reference.rect.width, reference.pivot.y / reference.rect.height);
+            ppu = reference.pixelsPerUnit * (cw / reference.rect.width);     // même taille à l'écran que les cases habituelles
+        }
+        s = Sprite.Create(t, r, pivot, ppu, 0, SpriteMeshType.FullRect);
+        s.name = $"{t.name}_c{colonne}_l{ligne}";
+        cases[(t, colonne, ligne)] = s;
+        return s;
+    }
+
     // La même case que « original » (une case de la planche du personnage de base), prise sur une autre planche.
     // Même rectangle (à l'échelle), même pivot, même taille à l'écran : l'animation existante reste valable.
     public static Sprite Equivalent(Sprite original, Texture2D feuille)

@@ -59,6 +59,7 @@ public class Player : NetworkBehaviour
     bool Frozen => (role != null && !role.matchStarted)
                    || QuestSession.IsOpen
                    || MatchFlow.Bloque
+                   || (identity != null && (identity.EnEvent || identity.AnimationEvent))   // dans un évent (ou en train d'y entrer / d'en sortir)
                    || (identity != null && identity.elimine && !identity.FantomeSeDeplace);
 
     void FixedUpdate()
