@@ -6,8 +6,9 @@ using UnityEngine.InputSystem;
 // SUR LE PREFAB player1. Détecte l'objet à portée et lit la touche E tout seul.
 // Informaticien : E ouvre la mission de SA quête. Pirate : E ouvre le panneau de sabotage.
 // Tout le monde : E sur le bouton rouge (MeetingButton) appelle une réunion d'urgence.
-// Pirate : E sur un évent (Vent) → il entre dedans (caché, immobile) ; flèches gauche / droite : il passe à un autre
-// évent ; E ou Échap : il ressort. Les évents sont ignorés par les informaticiens et les fantômes.
+// Pirate : E sur un évent (Vent) → il entre dedans (caché, immobile) ; W / A / S / D (ou les flèches du clavier) :
+// il passe à l'évent voisin dans cette direction (petites flèches autour de l'évent) ; E ou Échap : il ressort.
+// Les évents sont ignorés par les informaticiens et les fantômes.
 //
 // La détection est refaite À CHAQUE IMAGE (et non dans OnTriggerStay2D, qu'Unity cesse d'appeler dès que le
 // joueur reste immobile ~0,5 s) : un bureau qui devient sabotable pendant que le pirate attend dessus, ou la
@@ -170,23 +171,30 @@ public class PlayerInteraction : NetworkBehaviour
         ventOccupe = v;
         identity.TeleporterLocal(v.PositionDedans);                   // pile sur l'évent, pour en ressortir au bon endroit
         identity.EntrerDansEvent(true);                               // caché et immobile, chez tout le monde
+        v.MontrerFleches(true);                                       // les directions possibles (chez moi seulement)
         Debug.Log("[Évents] Entrée dans " + v.name);
         AfficherAideEvent();
     }
 
-    void ChangerEvent(int sens)
+    void AllerVers(Vector2Int direction)
     {
-        var suivant = Vent.Suivant(ventOccupe, sens);
-        if (suivant == null || suivant == ventOccupe) return;
+        var suivant = ventOccupe != null ? ventOccupe.Voisin(direction) : null;
+        if (suivant == null) { QuestBar.Notify("Pas d'évent dans cette direction"); return; }
+        ventOccupe.MontrerFleches(false);
         ventOccupe = suivant;
         identity.TeleporterLocal(suivant.PositionDedans);             // toujours caché : personne ne voit le trajet
+        suivant.MontrerFleches(true);
         Debug.Log("[Évents] Passage à " + suivant.name);
         AfficherAideEvent();
     }
 
     void CommencerSortie(bool immediat)
     {
-        if (ventOccupe != null) identity.TeleporterLocal(ventOccupe.PositionSortie);
+        if (ventOccupe != null)
+        {
+            ventOccupe.MontrerFleches(false);
+            identity.TeleporterLocal(ventOccupe.PositionSortie);
+        }
         sortieEventA = immediat ? 0f : Time.time + dureeSortieEvent; // on reste caché un court instant, le temps que le réseau suive
         QuestBar.Permanent("");
         if (immediat) TerminerSortie();
@@ -203,13 +211,22 @@ public class PlayerInteraction : NetworkBehaviour
     void AfficherAideEvent()
     {
         if (ventOccupe == null) { QuestBar.Permanent(""); return; }
-        string ou = ventOccupe.Etiquette();
-        QuestBar.Permanent(Vent.Nombre > 1
-            ? $"Dans l'évent : {ou}   —   flèches gauche / droite : changer d'évent   ·   {toucheInteraction} ou Échap : sortir"
-            : $"Dans l'évent : {ou}   —   {toucheInteraction} ou Échap : sortir");
+        var sb = new System.Text.StringBuilder("Dans l'évent : " + ventOccupe.Etiquette() + "   —   ");
+        int n = 0;
+        foreach (var dir in Vent.Directions)
+        {
+            var v = ventOccupe.Voisin(dir);
+            if (v == null) continue;
+            string touche = dir == Vector2Int.up ? "W" : dir == Vector2Int.left ? "A" : dir == Vector2Int.down ? "S" : "D";
+            if (n++ > 0) sb.Append(" · ");
+            sb.Append(touche).Append(" : ").Append(v.Etiquette());
+        }
+        if (n == 0) sb.Append("aucun autre évent");
+        sb.Append("   ·   ").Append(toucheInteraction).Append(" ou Échap : sortir");
+        QuestBar.Permanent(sb.ToString());
     }
 
-    // Dans un évent : flèches pour changer d'évent, E ou Échap pour sortir. Vote, fin de partie ou éjection : on sort d'office.
+    // Dans un évent : W/A/S/D (ou flèches) vers l'évent voisin, E ou Échap pour sortir. Vote, fin de partie ou éjection : on sort d'office.
     void GererEvent(Keyboard clavier)
     {
         if (sortieEventA >= 0f)
@@ -219,8 +236,10 @@ public class PlayerInteraction : NetworkBehaviour
         }
         if (!MatchFlow.EnPartie || Ejecte) { CommencerSortie(true); return; }
         if (clavier == null) return;
-        if (clavier.leftArrowKey.wasPressedThisFrame) ChangerEvent(-1);
-        else if (clavier.rightArrowKey.wasPressedThisFrame) ChangerEvent(+1);
+        if (clavier.wKey.wasPressedThisFrame || clavier.upArrowKey.wasPressedThisFrame) AllerVers(Vector2Int.up);
+        else if (clavier.aKey.wasPressedThisFrame || clavier.leftArrowKey.wasPressedThisFrame) AllerVers(Vector2Int.left);
+        else if (clavier.sKey.wasPressedThisFrame || clavier.downArrowKey.wasPressedThisFrame) AllerVers(Vector2Int.down);
+        else if (clavier.dKey.wasPressedThisFrame || clavier.rightArrowKey.wasPressedThisFrame) AllerVers(Vector2Int.right);
         else if (clavier[toucheInteraction].wasPressedThisFrame || clavier.escapeKey.wasPressedThisFrame) CommencerSortie(false);
     }
 

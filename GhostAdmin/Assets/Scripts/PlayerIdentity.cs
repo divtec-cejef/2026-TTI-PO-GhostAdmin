@@ -57,7 +57,10 @@ public class PlayerIdentity : NetworkBehaviour
 
     // Dans un évent : chez moi, tout de suite (sans attendre le serveur) ; chez les autres, dès que le serveur le dit.
     bool eventLocal;
+    bool etatEventJoue;        // l'état (dedans / dehors) pour lequel l'animation a déjà été lancée
+    VentAnimation animEvent;   // l'animation d'entrée / sortie (ajoutée toute seule)
     public bool EnEvent => dansEvent || eventLocal;
+    public bool AnimationEvent => animEvent != null && animEvent.EnCours;   // lu par Player : immobile pendant l'animation
     public static bool JeSuisDansUnEvent => Local != null && Local.EnEvent;
     readonly Dictionary<Collider2D, bool> triggersAvantEvent = new Dictionary<Collider2D, bool>();
 
@@ -65,6 +68,8 @@ public class PlayerIdentity : NetworkBehaviour
     {
         sr = GetComponent<SpriteRenderer>();
         if (sr != null) couleurOrigine = sr.color;
+        animEvent = GetComponent<VentAnimation>();
+        if (animEvent == null) animEvent = gameObject.AddComponent<VentAnimation>();
     }
 
     public override void OnStartLocalPlayer()
@@ -151,7 +156,18 @@ public class PlayerIdentity : NetworkBehaviour
         if (!isLocalPlayer) return;
         eventLocal = dedans;
         CmdDansEvent(dedans);
-        Rafraichir();
+        AppliquerEtatEvent(dedans);
+    }
+
+    // Entrée : l'animation joue, puis il est caché. Sortie : il réapparaît dans la fumée, puis tout redevient normal.
+    // Idempotent : chez moi, l'état local puis l'écho du serveur arrivent tous les deux, l'animation ne joue qu'une fois.
+    void AppliquerEtatEvent(bool dedans)
+    {
+        if (etatEventJoue == dedans) { Rafraichir(); return; }
+        etatEventJoue = dedans;
+        if (elimine || animEvent == null) { Rafraichir(); return; }
+        animEvent.Jouer(dedans, skin, Rafraichir);                // à la fin : caché (entrée) ou normal (sortie)
+        Rafraichir();                                             // physique (zones) tout de suite ; visible tant que l'animation joue
     }
 
     [Command]
@@ -163,7 +179,7 @@ public class PlayerIdentity : NetworkBehaviour
         dansEvent = dedans;
     }
 
-    void EventChange(bool o, bool n) => Rafraichir();
+    void EventChange(bool o, bool n) => AppliquerEtatEvent(n);
 
     // Dans l'évent, mes colliders deviennent des zones (personne ne bute sur un joueur invisible) ; en sortant, retour à la normale.
     void AppliquerPhysiqueEvent(bool dedans)
@@ -231,8 +247,8 @@ public class PlayerIdentity : NetworkBehaviour
     void Rafraichir()
     {
         // Un fantôme n'est vu que par les fantômes (et par lui-même) : pour les vivants, il n'existe plus à l'écran.
-        // Dans un évent : caché pour tout le monde, lui compris.
-        bool visible = (!elimine || JeSuisFantome) && !EnEvent;
+        // Dans un évent : caché pour tout le monde, lui compris — une fois l'animation d'entrée terminée.
+        bool visible = (!elimine || JeSuisFantome) && !(EnEvent && !AnimationEvent);
 
         if (etiquette != null)
         {

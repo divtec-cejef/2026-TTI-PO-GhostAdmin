@@ -157,6 +157,40 @@ public static class ObjetDeCarte
         return r;
     }
 
+    // Une petite flèche jaune vers le haut (dessinée en pixels, mise en cache) : les directions d'un évent.
+    // Pour les autres directions, on tourne l'objet qui la porte (par quarts de tour : reste nette).
+    static Sprite spriteFleche;
+    public static Sprite SpriteFleche(float ppu)
+    {
+        if (spriteFleche != null && Mathf.Approximately(spriteFleche.pixelsPerUnit, ppu)) return spriteFleche;
+        string[] motif =
+        {
+            "....#....",
+            "...#F#...",
+            "..#FFF#..",
+            ".#FFFFF#.",
+            "#FFFFFFF#",
+            "###FFF###",
+            "..#FFF#..",
+            "..#FFF#..",
+            "..#####..",
+        };
+        int w = motif[0].Length, h = motif.Length;
+        var tex = new Texture2D(w, h, TextureFormat.RGBA32, false) { filterMode = FilterMode.Point };
+        var px = new Color32[w * h];
+        for (int y = 0; y < h; y++)
+            for (int x = 0; x < w; x++)
+            {
+                char c = motif[h - 1 - y][x];
+                px[y * w + x] = c == 'F' ? new Color32(255, 220, 60, 255)      // la flèche
+                              : c == '#' ? new Color32(30, 30, 40, 255)        // son contour sombre
+                              : new Color32(0, 0, 0, 0);
+            }
+        tex.SetPixels32(px); tex.Apply();
+        spriteFleche = Sprite.Create(tex, new Rect(0, 0, w, h), new Vector2(0.5f, 0.5f), ppu);
+        return spriteFleche;
+    }
+
     // Le sprite du « E » (dessiné en pixels, mis en cache)
     static Sprite spriteE;
     public static Sprite SpriteE(float ppu)

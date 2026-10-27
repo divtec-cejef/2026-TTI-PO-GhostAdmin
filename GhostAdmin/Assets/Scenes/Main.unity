@@ -296,6 +296,7 @@ GameObject:
   m_Component:
   - component: {fileID: 19825165}
   - component: {fileID: 19825164}
+  - component: {fileID: 19825166}
   m_Layer: 0
   m_Name: vent_0 (3)
   m_TagString: Untagged
@@ -378,6 +379,32 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &19825166
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 19825163}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 47dc03fa25b5a004ab61a55c263a7af2, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Vent
+  numero: 0
+  nomPiece: 
+  zoneAuto: 1
+  margeZone: 0.4
+  highlightTarget: {fileID: 0}
+  promptE: {fileID: 0}
+  couleurContour: {r: 1, g: 0.35, b: 0.35, a: 1}
+  outlineThickness: 1
+  outlineGap: 1
+  promptDroit: 1
+  positionPrompt: 1
+  decalagePrompt: {x: 0, y: 0}
+  promptMarge: 0.2
+  sortie: {x: 0, y: 0}
 --- !u!1 &31229220
 GameObject:
   m_ObjectHideFlags: 0
@@ -1855,6 +1882,7 @@ GameObject:
   m_Component:
   - component: {fileID: 695714065}
   - component: {fileID: 695714064}
+  - component: {fileID: 695714066}
   m_Layer: 0
   m_Name: vent_0
   m_TagString: Untagged
@@ -1937,6 +1965,32 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &695714066
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 695714063}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 47dc03fa25b5a004ab61a55c263a7af2, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Vent
+  numero: 0
+  nomPiece: 
+  zoneAuto: 1
+  margeZone: 0.4
+  highlightTarget: {fileID: 0}
+  promptE: {fileID: 0}
+  couleurContour: {r: 1, g: 0.35, b: 0.35, a: 1}
+  outlineThickness: 1
+  outlineGap: 1
+  promptDroit: 1
+  positionPrompt: 1
+  decalagePrompt: {x: 0, y: 0}
+  promptMarge: 0.2
+  sortie: {x: 0, y: 0}
 --- !u!1 &696711698
 GameObject:
   m_ObjectHideFlags: 0
@@ -3528,6 +3582,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1090306739}
   - component: {fileID: 1090306738}
+  - component: {fileID: 1090306740}
   m_Layer: 0
   m_Name: vent_0 (5)
   m_TagString: Untagged
@@ -3610,6 +3665,32 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1090306740
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1090306737}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 47dc03fa25b5a004ab61a55c263a7af2, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Vent
+  numero: 0
+  nomPiece: 
+  zoneAuto: 1
+  margeZone: 0.4
+  highlightTarget: {fileID: 0}
+  promptE: {fileID: 0}
+  couleurContour: {r: 1, g: 0.35, b: 0.35, a: 1}
+  outlineThickness: 1
+  outlineGap: 1
+  promptDroit: 1
+  positionPrompt: 1
+  decalagePrompt: {x: 0, y: 0}
+  promptMarge: 0.2
+  sortie: {x: 0, y: 0}
 --- !u!1 &1124924901
 GameObject:
   m_ObjectHideFlags: 0
@@ -4121,6 +4202,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1172928650}
   - component: {fileID: 1172928649}
+  - component: {fileID: 1172928651}
   m_Layer: 0
   m_Name: vent_0 (2)
   m_TagString: Untagged
@@ -4203,6 +4285,32 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1172928651
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1172928648}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 47dc03fa25b5a004ab61a55c263a7af2, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Vent
+  numero: 0
+  nomPiece: 
+  zoneAuto: 1
+  margeZone: 0.4
+  highlightTarget: {fileID: 0}
+  promptE: {fileID: 0}
+  couleurContour: {r: 1, g: 0.35, b: 0.35, a: 1}
+  outlineThickness: 1
+  outlineGap: 1
+  promptDroit: 1
+  positionPrompt: 1
+  decalagePrompt: {x: 0, y: 0}
+  promptMarge: 0.2
+  sortie: {x: 0, y: 0}
 --- !u!1 &1212771466
 GameObject:
   m_ObjectHideFlags: 0
@@ -6412,6 +6520,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1671877584}
   - component: {fileID: 1671877583}
+  - component: {fileID: 1671877585}
   m_Layer: 0
   m_Name: vent_0 (1)
   m_TagString: Untagged
@@ -6494,6 +6603,32 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1671877585
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1671877582}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 47dc03fa25b5a004ab61a55c263a7af2, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Vent
+  numero: 0
+  nomPiece: 
+  zoneAuto: 1
+  margeZone: 0.4
+  highlightTarget: {fileID: 0}
+  promptE: {fileID: 0}
+  couleurContour: {r: 1, g: 0.35, b: 0.35, a: 1}
+  outlineThickness: 1
+  outlineGap: 1
+  promptDroit: 1
+  positionPrompt: 1
+  decalagePrompt: {x: 0, y: 0}
+  promptMarge: 0.2
+  sortie: {x: 0, y: 0}
 --- !u!1 &1691906968
 GameObject:
   m_ObjectHideFlags: 0
@@ -18239,6 +18374,7 @@ GameObject:
   m_Component:
   - component: {fileID: 2058753442}
   - component: {fileID: 2058753441}
+  - component: {fileID: 2058753443}
   m_Layer: 0
   m_Name: vent_0 (4)
   m_TagString: Untagged
@@ -18321,6 +18457,32 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &2058753443
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2058753440}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 47dc03fa25b5a004ab61a55c263a7af2, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Vent
+  numero: 0
+  nomPiece: 
+  zoneAuto: 1
+  margeZone: 0.4
+  highlightTarget: {fileID: 0}
+  promptE: {fileID: 0}
+  couleurContour: {r: 1, g: 0.35, b: 0.35, a: 1}
+  outlineThickness: 1
+  outlineGap: 1
+  promptDroit: 1
+  positionPrompt: 1
+  decalagePrompt: {x: 0, y: 0}
+  promptMarge: 0.2
+  sortie: {x: 0, y: 0}
 --- !u!1 &2084613714
 GameObject:
   m_ObjectHideFlags: 0
