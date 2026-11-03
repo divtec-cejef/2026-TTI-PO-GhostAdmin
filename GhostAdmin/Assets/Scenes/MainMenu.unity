@@ -1382,7 +1382,7 @@ MonoBehaviour:
   offlineSceneLoadDelay: 0
   transport: {fileID: 1531205423}
   networkAddress: localhost
-  maxConnections: 100
+  maxConnections: 4
   disconnectInactiveConnections: 0
   disconnectInactiveTimeout: 60
   authenticator: {fileID: 0}
@@ -1406,13 +1406,13 @@ MonoBehaviour:
   evaluationInterval: 3
   timeInterpolationGui: 0
   showRoomGUI: 0
-  minPlayers: 2
+  minPlayers: 0
   roomPlayerPrefab: {fileID: 6468821999863015822, guid: 519a16ad743ea694aa205b050551abb0, type: 3}
   RoomScene: Assets/Scenes/Salon.unity
   GameplayScene: Assets/Scenes/Main.unity
   _allPlayersReady: 0
   clientIndex: 0
-  briefingSeconds: 30
+  briefingSeconds: 20
   questsPerPlayer: 3
   rechargeSabotage: 0
   fantomesFontLeursQuetes: 1
