@@ -11,7 +11,19 @@ public class GhostAdminRoomPlayer : NetworkRoomPlayer
     // Le personnage choisi (index dans Skins.Liste). Décidé par le serveur : jamais deux joueurs avec la même couleur.
     [SyncVar(hook = nameof(SkinChanged))] public int skin = -1;
 
-    public string NomAffiche => string.IsNullOrWhiteSpace(pseudo) ? "Joueur " + (index + 1) : pseudo;
+    [Header("Nom des joueurs")]
+    [SerializeField] bool nomSelonCouleur = true;   // true : chacun s'appelle comme sa couleur (« Vert », « Rouge »…) ; false : pseudo du menu, sinon « Joueur N »
+
+    // Le nom affiché partout (salon, au-dessus de la tête, cartes de vote, messages) : la couleur du personnage,
+    // sinon le pseudo tapé dans le menu, sinon « Joueur N ».
+    public string NomAffiche
+    {
+        get
+        {
+            if (nomSelonCouleur && Skins.Valide(skin)) return Skins.Nom(skin);
+            return string.IsNullOrWhiteSpace(pseudo) ? "Joueur " + (index + 1) : pseudo;
+        }
+    }
 
     // À son arrivée, le serveur lui donne la première couleur libre.
     public override void OnStartServer()
