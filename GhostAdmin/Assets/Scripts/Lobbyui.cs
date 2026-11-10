@@ -4,8 +4,9 @@ using Mirror;
 using TMPro;
 using UnityEngine;
 
-// Scène "Salon" (Room Scene) : liste des joueurs (panneau « JOUEURS » créé en code, ou l'ancien texte brut si tu
-// décoches « Liste Elegante »), bouton PRÊT, et choix du personnage (panneau créé en code).
+// Scène "Salon" (Room Scene). Par défaut (« Nouveau Salon » coché), l'écran complet du salon est créé en code
+// (LobbyScreenUI : cartes des joueurs, choix du personnage, boutons PRÊT et QUITTER) et recouvre l'ancienne
+// interface de la scène. Décoché : l'ancien fonctionnement (liste « JOUEURS » ou texte brut, sélecteur, tes boutons).
 public class LobbyUI : MonoBehaviour
 {
     static LobbyUI instance;
@@ -13,7 +14,13 @@ public class LobbyUI : MonoBehaviour
     [SerializeField] TMP_Text playerList;
     [SerializeField] TMP_Text readyButtonLabel;
 
-    [Header("Liste des joueurs")]
+    [Header("Nouveau salon (écran complet créé en code)")]
+    [SerializeField] bool nouveauSalon = true;
+    [SerializeField] int nombreDePlaces = 4;                 // cartes affichées (joueurs + places libres)
+    [SerializeField] TMP_FontAsset policeTitres;             // optionnel : une police pixel (TMP Font Asset) pour les titres et le bouton PRÊT
+    [SerializeField] TMP_FontAsset policeTexte;              // optionnel : la police du reste (vide = celle par défaut de TextMeshPro)
+
+    [Header("Ancien salon : liste des joueurs")]
     [SerializeField] bool listeElegante = true;                                        // panneau avec portraits et badges PRÊT ; décoché = le texte Player List
     [SerializeField] LobbyPlayersUI.Position positionListe = LobbyPlayersUI.Position.Gauche;
 
@@ -26,6 +33,13 @@ public class LobbyUI : MonoBehaviour
 
     void Start()
     {
+        if (nouveauSalon)
+        {
+            LobbyScreenUI.Ensure(policeTitres, policeTexte, nombreDePlaces);   // l'écran complet, par-dessus la scène
+            if (playerList != null) playerList.gameObject.SetActive(false);
+            Refresh();
+            return;
+        }
         if (listeElegante)
         {
             LobbyPlayersUI.Ensure(positionListe);                                // le panneau « JOUEURS », créé en code
@@ -70,7 +84,8 @@ public class LobbyUI : MonoBehaviour
                 readyButtonLabel.text = p.readyToBegin ? "ANNULER" : "PRÊT";
         }
 
-        if (listeElegante) LobbyPlayersUI.Rafraichir();
+        if (nouveauSalon) LobbyScreenUI.Rafraichir();
+        else if (listeElegante) LobbyPlayersUI.Rafraichir();
         else if (playerList != null) playerList.text = sb.ToString();
     }
 }
