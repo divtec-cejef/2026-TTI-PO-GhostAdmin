@@ -55,6 +55,7 @@ public class PlayerQuests : NetworkBehaviour
     public void CmdCompleteQuest(int id)
     {
         if (!serverAssigned.Contains(id) || serverDone.Contains(id)) return;   // pas à lui, ou déjà faite : ignoré
+        if (MatchFlow.ReseauSature) { TargetSabotageResult(false, "Réseau saturé : la quête n'a pas pu être envoyée"); return; }   // attaque DDoS en cours
         serverDone.Add(id);
         TargetQuestDone(id);
         Manager.ServerQuestCompleted(this, id);
@@ -79,6 +80,22 @@ public class PlayerQuests : NetworkBehaviour
     {
         if (!serverDone.Remove(id)) return;
         TargetQuestCancelled(id);
+    }
+
+    // Attaque DDoS non réparée : TOUTES les quêtes faites de ce joueur sont perdues (le client affiche un seul message).
+    [Server]
+    public void ServerToutAnnuler()
+    {
+        if (serverDone.Count == 0) return;
+        serverDone.Clear();
+        TargetToutAnnule();
+    }
+
+    [TargetRpc]
+    void TargetToutAnnule()
+    {
+        myDone.Clear();
+        Debug.Log("[Quêtes] Toutes les quêtes sont à refaire (attaque DDoS non réparée)");
     }
 
     [TargetRpc]

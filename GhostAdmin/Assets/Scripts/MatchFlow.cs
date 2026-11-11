@@ -37,6 +37,14 @@ public class MatchFlow : NetworkBehaviour
     [SerializeField] int reunionsParJoueur = 1;                // combien de fois chaque joueur peut appuyer par partie
     [SerializeField] float reunionCooldown = 20f;              // secondes après le début de partie, ou après une réunion, avant de pouvoir appuyer
 
+    [Header("Hack DDoS du pirate (touche F)")]
+    [SerializeField] bool hackDDoSActif = true;
+    [SerializeField] float dureeAttaqueDDoS = 45f;   // le réseau reste saturé ce temps-là, sauf si le routeur est redémarré avant
+    [SerializeField] float rechargeAttaqueDDoS = 20f;   // attente avant le hack suivant (comptée à partir de la fin du précédent)
+    [SerializeField] bool quetesAZeroSiNonRepare = true; // personne n'a redémarré le routeur à temps : TOUTES les quêtes reviennent à 0
+    [SerializeField] float premierDDoS = 20f;        // attente après le début de la partie avant le premier hack
+    [SerializeField] float dureeReparation = 3f;     // console du routeur : secondes d'attente entre ÉTEINDRE et RALLUMER
+
     [Header("Affichage (optionnel)")]
     public Sprite[] portraits;        // une image par joueur, dans l'ordre du salon (vide = le sprite du personnage)
 
@@ -62,6 +70,9 @@ public class MatchFlow : NetworkBehaviour
     [SyncVar] public bool pirateGagne;
     [SyncVar] public string raison = "";
     [SyncVar] public string detailVotes = "";
+    [SyncVar] public double finDDoS;          // heure réseau de fin de l'attaque en cours (passée = pas d'attaque)
+    [SyncVar] public double ddosDisponibleA;  // heure réseau à partir de laquelle le pirate peut relancer le hack
+    bool ddosEnCours;                         // serveur : une attaque est en cours (pour savoir si elle a expiré)
 
     // ---- Côté serveur uniquement ----
     readonly Dictionary<uint, uint> votes = new Dictionary<uint, uint>();   // votant → cible
@@ -79,6 +90,10 @@ public class MatchFlow : NetworkBehaviour
 
     // Pratique pour les autres scripts (Player, PlayerInteraction) : null = ancien fonctionnement, rien ne change
     public static bool EnPartie => Instance == null || Instance.phase == PhasePartie.Partie;
+    // Attaque DDoS en cours : minimap et flèches des informaticiens coupées (Minimap, QuestArrows, HackReseauUI)
+    public static bool ReseauSature => Instance != null && Instance.phase == PhasePartie.Partie && NetworkTime.time < Instance.finDDoS;
+    public bool DDoSPret => hackDDoSActif && phase == PhasePartie.Partie && NetworkTime.time >= ddosDisponibleA && NetworkTime.time >= finDDoS;
+    public float DureeReparation => dureeReparation;
     public static bool Bloque => Instance != null && (Instance.phase == PhasePartie.Vote || Instance.phase == PhasePartie.Resultat);
     public bool VoterPourSoiMeme => voterPourSoiMeme;   // lu par MatchHUD pour griser (ou non) sa propre carte
     public bool VoteOuvert => NetworkTime.time >= ouvertureVotes;   // la réflexion est passée : on peut voter
@@ -113,6 +128,9 @@ public class MatchFlow : NetworkBehaviour
         phase = PhasePartie.Partie;
         finPartie = NetworkTime.time + dureePartie;
         reunionDisponibleA = NetworkTime.time + reunionCooldown;
+        finDDoS = 0;
+        ddosEnCours = false;
+        ddosDisponibleA = NetworkTime.time + premierDDoS;
         votes.Clear();
         candidats.Clear();
         reunionsUtilisees.Clear();
@@ -254,6 +272,7 @@ public class MatchFlow : NetworkBehaviour
         switch (phase)
         {
             case PhasePartie.Partie:
+                if (ddosEnCours && now >= finDDoS) ServerFinDDoSExpiree();
                 if (now >= finPartie) { ServerStartVote(false, ""); break; }
                 if (now >= prochaineVerification) { prochaineVerification = now + 1.0; ServerVerifierEffectifs(); }
                 break;
@@ -279,6 +298,8 @@ public class MatchFlow : NetworkBehaviour
     {
         if (phase == PhasePartie.Vote || phase == PhasePartie.Resultat) return;
         phase = PhasePartie.Vote;
+        if (NetworkTime.time < finDDoS) { finDDoS = 0; ddosDisponibleA = NetworkTime.time + rechargeAttaqueDDoS; }   // le réseau revient pendant le vote (sans pénalité)
+        ddosEnCours = false;
         voteUrgence = urgence;
         appelant = nomAppelant;
         motifVote = motif;
@@ -406,7 +427,7 @@ public class MatchFlow : NetworkBehaviour
                 if (id != null) id.ServerEliminer();
             }
             if (!ejecteEtaitPirate) innocentsEjectes++;
-            if (Manager != null) Manager.ServerRecount();              // ses quêtes ne comptent plus dans la barre
+            if (Manager != null) Manager.ServerRecount();              // barre recalculée (ses quêtes comptent encore si « Fantomes Font Leurs Quetes »)
         }
         bool pirateEjecte = ejecte != 0 && ejecteEtaitPirate;
 
@@ -468,6 +489,67 @@ public class MatchFlow : NetworkBehaviour
         resultatFinal = true;
         phase = PhasePartie.Resultat;
         finResultat = NetworkTime.time + dureeResultat;
+    }
+
+    // ---- Hack DDoS ----
+
+    // Le pirate appuie sur F.
+    [Server]
+    public void ServerHackDDoS(PlayerIdentity id)
+    {
+        if (id == null || !hackDDoSActif) return;
+        var role = id.GetComponent<PlayerRole>();
+        if (role == null || role.ServerRole != Role.Pirate || id.elimine) return;
+        if (phase != PhasePartie.Partie) return;
+        double now = NetworkTime.time;
+        if (now < finDDoS) { id.TargetMessage("Le réseau est déjà saturé"); return; }
+        if (now < ddosDisponibleA) { id.TargetMessage($"Hack indisponible : encore {Mathf.CeilToInt((float)(ddosDisponibleA - now))} s"); return; }
+        finDDoS = now + dureeAttaqueDDoS;
+        ddosDisponibleA = finDDoS + rechargeAttaqueDDoS;
+        ddosEnCours = true;
+        id.TargetMessage($"Attaque DDoS lancée : le réseau est saturé pendant {Mathf.RoundToInt(dureeAttaqueDDoS)} s");
+        Debug.Log($"[Serveur] DDoS lancé par {id.nom} pour {dureeAttaqueDDoS} s");
+    }
+
+    // Un informaticien a maintenu E sur le routeur jusqu'au bout.
+    [Server]
+    public void ServerReparerReseau(PlayerIdentity id)
+    {
+        if (id == null || id.elimine) return;
+        var role = id.GetComponent<PlayerRole>();
+        if (role == null || role.ServerRole == Role.Pirate) return;
+        if (phase != PhasePartie.Partie || NetworkTime.time >= finDDoS) return;
+        var routeur = Routeur.Instance;
+        if (routeur != null && !routeur.APortee(id.transform.position)) return;   // anti-triche : il doit être au routeur
+        finDDoS = NetworkTime.time;
+        ddosDisponibleA = NetworkTime.time + rechargeAttaqueDDoS;
+        ddosEnCours = false;
+        Debug.Log($"[Serveur] Routeur redémarré par {id.nom} : réseau rétabli");
+        RpcReseauRetabli(id.nom);
+    }
+
+    [ClientRpc]
+    void RpcReseauRetabli(string parQui) => QuestBar.Notify($"Réseau rétabli par {parQui} : les quêtes sont sauvées !");
+
+    // L'attaque est allée jusqu'au bout sans que personne ne redémarre le routeur : les quêtes sont perdues.
+    [Server]
+    void ServerFinDDoSExpiree()
+    {
+        ddosEnCours = false;
+        if (!quetesAZeroSiNonRepare || Manager == null) return;
+        Manager.ServerReinitialiserQuetes();
+        RpcQuetesPerdues();
+    }
+
+    [ClientRpc]
+    void RpcQuetesPerdues()
+    {
+        var moi = PlayerIdentity.Local;
+        var role = moi != null ? moi.GetComponent<PlayerRole>() : null;
+        bool pirate = role != null && role.MyRole == Role.Pirate;
+        QuestBar.Notify(pirate
+            ? "Hack réussi : le routeur n'a pas été redémarré, toutes les quêtes sont revenues à 0 !"
+            : "Trop tard ! Le routeur n'a pas été redémarré : toutes les quêtes sont revenues à 0.");
     }
 
     // Après une réunion : chrono rallongé du temps de pause, tout le monde autour du bouton, et on rejoue.

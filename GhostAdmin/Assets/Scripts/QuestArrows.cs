@@ -12,6 +12,8 @@ public class QuestArrows : MonoBehaviour
     const float Taille = 36f;     // taille de la flèche, en pixels
     static readonly Color CouleurInformaticien = Color.yellow;
     static readonly Color CouleurPirate = new Color(1f, 0.3f, 0.25f);
+    static readonly Color CouleurRouteur = new Color(0.35f, 0.9f, 1f);   // attaque DDoS : la flèche vers le routeur (cyan)
+    const float TailleRouteur = 48f;
 
     static QuestArrows instance;
 
@@ -24,6 +26,7 @@ public class QuestArrows : MonoBehaviour
     readonly Dictionary<Interactable, RectTransform> arrows = new Dictionary<Interactable, RectTransform>();
     Interactable[] objets = new Interactable[0];
     float prochainScan;
+    RectTransform flecheRouteur;
 
     void Awake()
     {
@@ -56,10 +59,16 @@ public class QuestArrows : MonoBehaviour
         var progress = QuestProgress.Instance;
         // Éjecté : un informaticien garde ses quêtes (contours, flèches) si le NetworkManager le permet ; sinon plus rien
         bool fantome = PlayerIdentity.JeSuisFantome && (pirate || !GhostAdminNetworkManager.FantomesActifs);
-        bool hudVisible = (role == null || role.matchStarted) && !QuestSession.IsOpen && MatchFlow.EnPartie && !fantome;
+        bool brouille = MatchFlow.ReseauSature && !pirate;                // attaque DDoS : plus de flèches pour les informaticiens
+        bool hudVisible = (role == null || role.matchStarted) && !QuestSession.IsOpen && MatchFlow.EnPartie && !fantome && !brouille;
         Color couleur = pirate ? CouleurPirate : CouleurInformaticien;
 
         Vector2 centre = new Vector2(Screen.width, Screen.height) * 0.5f;
+
+        // Attaque DDoS : une grande flèche cyan vers le routeur (informaticiens vivants : eux seuls peuvent le redémarrer)
+        bool versRouteur = brouille && !PlayerIdentity.JeSuisFantome && Routeur.Instance != null
+                           && (role == null || role.matchStarted) && !QuestSession.IsOpen && MatchFlow.EnPartie;
+        GuiderVersRouteur(versRouteur, cam, centre);
 
         foreach (var it in objets)
         {
@@ -69,6 +78,7 @@ public class QuestArrows : MonoBehaviour
             bool pending = !fantome && (pirate
                 ? (progress != null && progress.EstFaite(it.questId) && it.sabotagePanel != null)
                 : (local.IsAssigned(it.questId) && !local.IsDone(it.questId)));
+            if (brouille) pending = false;                   // attaque DDoS : plus de contours jaunes, les quêtes sont bloquées
             it.SetOutline(pending, couleur);                 // contour tant que c'est à faire (ou à saboter)
 
             if (!pending || !hudVisible) { ShowArrow(it, false); continue; }
@@ -93,6 +103,55 @@ public class QuestArrows : MonoBehaviour
             arrow.GetComponent<Image>().color = couleur;
             arrow.gameObject.SetActive(true);
         }
+    }
+
+    void GuiderVersRouteur(bool actif, Camera cam, Vector2 centre)
+    {
+        if (!actif)
+        {
+            if (flecheRouteur != null) flecheRouteur.gameObject.SetActive(false);
+            return;
+        }
+        if (flecheRouteur == null)
+        {
+            var go = new GameObject("FlecheRouteur");
+            go.transform.SetParent(transform, false);
+            var img = go.AddComponent<Image>();
+            img.sprite = fleche;
+            img.color = CouleurRouteur;
+            img.raycastTarget = false;
+            flecheRouteur = go.GetComponent<RectTransform>();
+            flecheRouteur.sizeDelta = new Vector2(TailleRouteur, TailleRouteur);
+        }
+        flecheRouteur.gameObject.SetActive(true);
+        float pulsation = Mathf.Sin(Time.time * 6f);
+        var img2 = flecheRouteur.GetComponent<Image>();
+        img2.color = Color.Lerp(CouleurRouteur, Color.white, 0.25f + 0.25f * pulsation);
+
+        var routeur = Routeur.Instance;
+        var b = ObjetDeCarte.Bornes(routeur.GetComponent<SpriteRenderer>(), routeur.transform);
+        Vector3 sp = cam.WorldToScreenPoint(routeur.transform.position);
+        bool onScreen = sp.z > 0 && sp.x >= 0 && sp.x <= Screen.width && sp.y >= 0 && sp.y <= Screen.height;
+
+        if (onScreen)
+        {
+            // À l'écran : la flèche se pose au-dessus du routeur, pointe vers le bas, et rebondit
+            Vector3 haut = cam.WorldToScreenPoint(new Vector3(b.center.x, b.max.y, b.center.z));
+            flecheRouteur.position = new Vector2(haut.x, haut.y + TailleRouteur * 0.8f + 8f * pulsation);
+            flecheRouteur.rotation = Quaternion.Euler(0f, 0f, -90f);
+            return;
+        }
+
+        // Hors champ : au bord de l'écran, tournée vers le routeur
+        Vector2 dir = (Vector2)sp - centre;
+        if (sp.z < 0) dir = -dir;
+        if (dir.sqrMagnitude < 0.001f) dir = Vector2.up;
+        dir.Normalize();
+        float hx = centre.x - Marge - 6f, hy = centre.y - Marge - 6f;
+        float tx = Mathf.Abs(dir.x) > 1e-4f ? hx / Mathf.Abs(dir.x) : float.MaxValue;
+        float ty = Mathf.Abs(dir.y) > 1e-4f ? hy / Mathf.Abs(dir.y) : float.MaxValue;
+        flecheRouteur.position = centre + dir * (Mathf.Min(tx, ty) - 6f * pulsation);
+        flecheRouteur.rotation = Quaternion.Euler(0, 0, Mathf.Atan2(dir.y, dir.x) * Mathf.Rad2Deg);
     }
 
     // La caméra qui filme le jeu (jamais celle de la minimap, qui rend dans une texture)
@@ -125,6 +184,7 @@ public class QuestArrows : MonoBehaviour
 
     void HideAll()
     {
+        if (flecheRouteur != null) flecheRouteur.gameObject.SetActive(false);
         foreach (var rt in arrows.Values) if (rt != null) rt.gameObject.SetActive(false);
     }
 
