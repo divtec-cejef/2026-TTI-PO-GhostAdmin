@@ -185,6 +185,23 @@ public class GhostAdminNetworkManager : NetworkRoomManager
             : "Rien à saboter : aucune mission n'a encore été réalisée");
     }
 
+    // Attaque DDoS non réparée à temps : toutes les quêtes réalisées sont perdues, la barre retombe à 0.
+    [Server]
+    public void ServerReinitialiserQuetes()
+    {
+        foreach (var p in loaded)
+        {
+            if (p == null) continue;
+            var q = p.GetComponent<PlayerQuests>();
+            if (q != null) q.ServerToutAnnuler();
+        }
+        completions.Clear();
+        var progress = FindAnyObjectByType<QuestProgress>();
+        if (progress != null) progress.ServerViderFaites();
+        ServerRecount();
+        Debug.Log("[Serveur] DDoS non réparé : toutes les quêtes sont remises à zéro");
+    }
+
     // Recompte les quêtes de tous les informaticiens et pousse le résultat vers tous les clients (barre).
     // Un joueur éjecté ne compte plus (sinon ses quêtes restantes bloqueraient la victoire des informaticiens).
     [Server]

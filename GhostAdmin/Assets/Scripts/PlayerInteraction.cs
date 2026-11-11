@@ -63,6 +63,7 @@ public class PlayerInteraction : NetworkBehaviour
             if (it.sabotagePanel == null) return false;
             return p == null || p.EstFaite(it.questId);
         }
+        if (MatchFlow.ReseauSature) return false;                    // attaque DDoS : aucune quête possible tant que le routeur n'est pas redémarré
         return quests.IsAssigned(it.questId) && !quests.IsDone(it.questId);
     }
 
@@ -291,6 +292,8 @@ public class PlayerInteraction : NetworkBehaviour
         if (proche == null || Bloque || !MatchFlow.EnPartie) return;
         if (Pirate)
             QuestBar.Notify(proche.sabotagePanel == null ? "Rien à saboter ici" : "Aucune mission réalisée ici : rien à saboter");
+        else if (MatchFlow.ReseauSature)
+            QuestBar.Notify("Réseau saturé : impossible de faire une quête. Redémarre d'abord le routeur !");
         else if (!quests.IsAssigned(proche.questId))
             QuestBar.Notify("Ce n'est pas une de tes quêtes");
         else if (quests.IsDone(proche.questId))

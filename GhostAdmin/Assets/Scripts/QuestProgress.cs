@@ -33,6 +33,8 @@ public class QuestProgress : NetworkBehaviour
 
     [Server]
     public void ServerAjouterFaite(int questId) => faites.Add(questId);
+    [Server]
+    public void ServerViderFaites() => faites.Clear();
 
     [Server]
     public void ServerRetirerFaite(int questId)

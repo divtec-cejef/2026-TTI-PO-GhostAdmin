@@ -50,10 +50,24 @@ public static class QuestSession
         Debug.Log("[Quêtes] Panneau « " + panel.name + " » activé (actif dans la scène : " + panel.activeInHierarchy + ")");
     }
 
+    // Un panneau qui n'est pas une quête (ex. : la console du routeur) : le joueur est figé comme pendant une mission,
+    // Échap / Cancel() le referme. Il n'envoie rien au serveur tout seul.
+    public static void OuvrirExterne(GameObject p)
+    {
+        if (IsOpen || p == null) return;
+        IsOpen = true;
+        IsSabotage = false;
+        CurrentQuestId = -1;
+        CurrentTitle = "";
+        panel = p;
+        owner = null;
+    }
+
     // Réussite : mission → le serveur valide la quête ; sabotage → le serveur annule la mission réalisée À CET ENDROIT.
     public static void Complete()
     {
         if (!IsOpen) return;
+        if (owner == null) { Close(); return; }               // panneau externe : rien à valider
         if (IsSabotage) owner.CmdSabotage(CurrentQuestId);
         else owner.CmdCompleteQuest(CurrentQuestId);
         Close();

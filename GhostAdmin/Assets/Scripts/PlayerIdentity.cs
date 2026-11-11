@@ -107,6 +107,20 @@ public class PlayerIdentity : NetworkBehaviour
         if (MatchFlow.Instance != null) MatchFlow.Instance.ServerReceiveVote(this, cible);
     }
 
+    // Le pirate lance son hack DDoS (touche F). Le serveur vérifie tout (MatchFlow).
+    [Command]
+    public void CmdHackDDoS()
+    {
+        if (MatchFlow.Instance != null) MatchFlow.Instance.ServerHackDDoS(this);
+    }
+
+    // Un informaticien a redémarré le routeur (E maintenu). Le serveur vérifie qu'il y est bien.
+    [Command]
+    public void CmdReparerReseau()
+    {
+        if (MatchFlow.Instance != null) MatchFlow.Instance.ServerReparerReseau(this);
+    }
+
     // Mon joueur appuie sur le bouton rouge : réunion d'urgence. Le serveur décide (MatchFlow).
     [Command]
     public void CmdReunion()

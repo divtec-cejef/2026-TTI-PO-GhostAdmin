@@ -54,6 +54,12 @@ public class Minimap : MonoBehaviour
     PlayerIdentity[] joueurs = new PlayerIdentity[0];
     float prochainScan;
 
+    // Attaque DDoS : la carte est couverte de « neige » et les marqueurs disparaissent (informaticiens seulement)
+    RawImage neige;
+    Texture2D texNeige;
+    TMPro.TMP_Text neigeTxt;
+    float prochaineNeige;
+
     void Awake()
     {
         instance = this;
@@ -78,7 +84,41 @@ public class Minimap : MonoBehaviour
         image = carteGo.AddComponent<RawImage>();
         image.raycastTarget = false;
 
+        var neigeGo = new GameObject("Brouillage");
+        neigeGo.transform.SetParent(panGo.transform, false);
+        var nr = neigeGo.AddComponent<RectTransform>();
+        nr.anchorMin = Vector2.zero; nr.anchorMax = Vector2.one; nr.offsetMin = Vector2.zero; nr.offsetMax = Vector2.zero;
+        neige = neigeGo.AddComponent<RawImage>();
+        neige.raycastTarget = false;
+        texNeige = new Texture2D(48, 32, TextureFormat.RGBA32, false) { filterMode = FilterMode.Point, wrapMode = TextureWrapMode.Repeat };
+        neige.texture = texNeige;
+        var txtGo = new GameObject("Texte");
+        txtGo.transform.SetParent(neigeGo.transform, false);
+        neigeTxt = txtGo.AddComponent<TMPro.TextMeshProUGUI>();
+        neigeTxt.text = "RÉSEAU SATURÉ";
+        neigeTxt.fontStyle = TMPro.FontStyles.Bold;
+        neigeTxt.alignment = TMPro.TextAlignmentOptions.Center;
+        neigeTxt.enableAutoSizing = true; neigeTxt.fontSizeMin = 8f; neigeTxt.fontSizeMax = 28f;
+        neigeTxt.color = new Color(1f, 0.35f, 0.3f);
+        neigeTxt.outlineWidth = 0.3f; neigeTxt.outlineColor = Color.black;
+        neigeTxt.raycastTarget = false;
+        var tr = neigeTxt.rectTransform;
+        tr.anchorMin = Vector2.zero; tr.anchorMax = Vector2.one; tr.offsetMin = new Vector2(6f, 6f); tr.offsetMax = new Vector2(-6f, -6f);
+        neigeGo.SetActive(false);
+
         panneau.gameObject.SetActive(false);
+    }
+
+    void RemplirNeige()
+    {
+        var px = new Color32[texNeige.width * texNeige.height];
+        for (int i = 0; i < px.Length; i++)
+        {
+            byte v = (byte)Random.Range(20, 200);
+            px[i] = new Color32(v, v, v, (byte)Random.Range(170, 235));
+        }
+        texNeige.SetPixels32(px);
+        texNeige.Apply();
     }
 
     void OnDestroy()
@@ -277,6 +317,20 @@ public class Minimap : MonoBehaviour
         bool pirate = role != null && role.MyRole == Role.Pirate;
         var progress = QuestProgress.Instance;
         var idLocal = local.GetComponent<PlayerIdentity>();
+
+        // Attaque DDoS : neige sur la carte, plus aucun marqueur (le pirate, lui, garde sa carte)
+        bool brouille = MatchFlow.ReseauSature && !pirate;
+        if (neige.gameObject.activeSelf != brouille) neige.gameObject.SetActive(brouille);
+        if (brouille)
+        {
+            neige.transform.SetAsLastSibling();
+            if (Time.unscaledTime >= prochaineNeige) { RemplirNeige(); prochaineNeige = Time.unscaledTime + 0.08f; }
+            moi.gameObject.SetActive(false);
+            foreach (var m in quetes.Values) if (m != null) m.gameObject.SetActive(false);
+            foreach (var t in traces.Values) if (t.marqueur != null) t.marqueur.gameObject.SetActive(false);
+            return;
+        }
+        if (!moi.gameObject.activeSelf) moi.gameObject.SetActive(true);
 
         // Moi
         moi.anchoredPosition = VersCarte(local.transform.position);
