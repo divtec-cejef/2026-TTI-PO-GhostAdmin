@@ -93,6 +93,31 @@ public class Interactable : MonoBehaviour
         Debug.Log($"[Quêtes] {liste.Count} quête(s) sur la carte : " + string.Join(", ", liste.Select(i => i.questId + " (" + i.name + ")")));
     }
 
+    // ---------------------------------------------------------------- mini-jeux mélangés
+
+    static int graineAppliquee;
+
+    // Redistribue les mini-jeux (panneau de mission + son sabotage + son titre) entre les bureaux, selon une graine
+    // tirée par le serveur. Même graine + même carte → même résultat chez tout le monde.
+    public static void MelangerMissions(int graine)
+    {
+        if (graine == 0 || graine == graineAppliquee) return;
+        ResoudreTous();
+        var bureaux = FindObjectsByType<Interactable>().Where(i => i.questPanel != null).OrderBy(i => i.questId).ToList();
+        if (bureaux.Count < 2) return;
+        var jeux = bureaux.Select(i => (q: i.questPanel, s: i.sabotagePanel, t: i.questTitle)).ToList();
+        var rng = new System.Random(graine);
+        for (int i = jeux.Count - 1; i > 0; i--) { int j = rng.Next(i + 1); (jeux[i], jeux[j]) = (jeux[j], jeux[i]); }
+        for (int i = 0; i < bureaux.Count; i++)
+        {
+            bureaux[i].questPanel = jeux[i].q;
+            bureaux[i].sabotagePanel = jeux[i].s;
+            bureaux[i].questTitle = jeux[i].t;
+        }
+        graineAppliquee = graine;
+        Debug.Log("[Quêtes] Mini-jeux redistribués entre les bureaux : " + string.Join(", ", bureaux.Select(b => b.name + " → " + (b.questPanel != null ? b.questPanel.name : "?"))));
+    }
+
     // ---------------------------------------------------------------- le « E » et le contour
 
     // Appelé par PlayerInteraction : MON joueur est à portée (true) ou s'éloigne (false) → le « E ».

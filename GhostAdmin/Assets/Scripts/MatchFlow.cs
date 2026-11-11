@@ -247,6 +247,11 @@ public class MatchFlow : NetworkBehaviour
         if (joueur == null) return;
         if (phase != PhasePartie.Partie) return;
         if (joueur.elimine) { joueur.TargetMessage("Vous avez été éjecté : vous ne pouvez plus appeler de réunion"); return; }
+        if (NetworkTime.time < finDDoS)
+        {
+            joueur.TargetMessage("Réseau saturé : impossible d'appeler une réunion. Redémarrez d'abord le routeur !");
+            return;
+        }
         if (NetworkTime.time < reunionDisponibleA)
         {
             int reste = Mathf.CeilToInt((float)(reunionDisponibleA - NetworkTime.time));
@@ -511,13 +516,12 @@ public class MatchFlow : NetworkBehaviour
         Debug.Log($"[Serveur] DDoS lancé par {id.nom} pour {dureeAttaqueDDoS} s");
     }
 
-    // Un informaticien a maintenu E sur le routeur jusqu'au bout.
+    // Un joueur vivant a redémarré le routeur depuis sa console. Le pirate aussi peut le faire (pour passer pour
+    // un informaticien serviable).
     [Server]
     public void ServerReparerReseau(PlayerIdentity id)
     {
         if (id == null || id.elimine) return;
-        var role = id.GetComponent<PlayerRole>();
-        if (role == null || role.ServerRole == Role.Pirate) return;
         if (phase != PhasePartie.Partie || NetworkTime.time >= finDDoS) return;
         var routeur = Routeur.Instance;
         if (routeur != null && !routeur.APortee(id.transform.position)) return;   // anti-triche : il doit être au routeur

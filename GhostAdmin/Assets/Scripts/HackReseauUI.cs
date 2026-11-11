@@ -118,7 +118,7 @@ public class HackReseauUI : MonoBehaviour
 
         // Le routeur : contour et E quand je peux le redémarrer ; E ouvre sa console
         var routeur = Routeur.Instance;
-        bool peutReparer = touche && !moi.elimine && MatchFlow.EnPartie && !QuestSession.IsOpen && routeur != null && routeur.APortee(moi.transform.position);
+        bool peutReparer = sature && !moi.elimine && MatchFlow.EnPartie && !QuestSession.IsOpen && routeur != null && routeur.APortee(moi.transform.position);
         if (routeur != null) routeur.SetFocused(peutReparer);
         if (peutReparer && clavier != null && clavier[ToucheReparer].wasPressedThisFrame)
             PanneauRouteur.Ouvrir(flow.DureeReparation);

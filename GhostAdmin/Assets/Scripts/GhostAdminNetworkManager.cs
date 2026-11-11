@@ -11,6 +11,7 @@ public class GhostAdminNetworkManager : NetworkRoomManager
     [Header("Ghost Admin")]
     [SerializeField] float briefingSeconds = 30f;   // durée des instructions (mets 5 pour tester)
     [SerializeField] int questsPerPlayer = 3;        // nombre de quêtes tirées pour chaque joueur
+    [SerializeField] bool eviterRepetition = true;   // les bureaux utilisés à la partie précédente passent en dernier
     [SerializeField] float rechargeSabotage = 0f;    // secondes entre deux sabotages du pirate (0 = aucune attente)
     [SerializeField] bool fantomesFontLeursQuetes = true;   // un joueur éjecté continue ses quêtes : elles comptent dans la barre et pour la victoire
     // Le chrono de la partie, le vote et le résultat se règlent sur MatchFlow (objet GameState, scène Main).
@@ -95,7 +96,19 @@ public class GhostAdminNetworkManager : NetworkRoomManager
         StartCoroutine(StartMatchAfterBriefing());
     }
 
-    // Chaque joueur reçoit SES quêtes, tirées au hasard parmi les objets Interactable de la carte.
+    // Un hasard vraiment différent à chaque partie (graine tirée de l'horloge et d'un identifiant unique)
+    static readonly System.Random hasard = new System.Random(System.Guid.NewGuid().GetHashCode() ^ System.Environment.TickCount);
+    static readonly HashSet<int> utilisesPartiePrecedente = new HashSet<int>();
+
+    static void Melanger<T>(List<T> l)
+    {
+        for (int i = l.Count - 1; i > 0; i--) { int j = hasard.Next(i + 1); (l[i], l[j]) = (l[j], l[i]); }
+    }
+
+    // Distribution au hasard, sans schéma (chaque bureau garde SON mini-jeu, réglé dans la scène) :
+    //  1. les bureaux forment un paquet mélangé (ceux de la partie précédente en dernier) ;
+    //  2. les informaticiens, dans un ordre tiré au sort, piochent chacun leur tour dans le paquet : les quêtes sont
+    //     réparties sur toute la carte, et deux joueurs n'ont le même bureau que s'il n'y en a pas assez pour tous.
     [Server]
     void AssignQuests()
     {
@@ -105,24 +118,48 @@ public class GhostAdminNetworkManager : NetworkRoomManager
             if (!ids.Contains(it.questId)) ids.Add(it.questId);
         Debug.Log($"[Serveur] {ids.Count} quête(s) trouvée(s) sur la carte (objets Interactable) — distribution à {loaded.Count} joueur(s)");
 
+        // 1) Le paquet de bureaux
+        var frais = new List<int>(); var recents = new List<int>();
+        foreach (var id in ids) (eviterRepetition && utilisesPartiePrecedente.Contains(id) ? recents : frais).Add(id);
+        Melanger(frais); Melanger(recents);
+        var paquet = new List<int>(frais); paquet.AddRange(recents);
+        int position = 0;
+
+        // 2) Chacun son tour
+        var informaticiens = new List<PlayerRole>();
         foreach (var p in loaded)
         {
-            // Le pirate n'a pas accès aux quêtes des informaticiens : liste vide pour lui.
-            if (p.ServerRole == Role.Pirate)
+            if (p == null) continue;
+            if (p.ServerRole == Role.Pirate) p.GetComponent<PlayerQuests>().ServerAssign(new List<int>());   // le pirate n'a pas de quêtes
+            else informaticiens.Add(p);
+        }
+        Melanger(informaticiens);
+        var choix = new Dictionary<PlayerRole, List<int>>();
+        foreach (var p in informaticiens) choix[p] = new List<int>();
+        int voulu = Mathf.Min(questsPerPlayer, ids.Count);
+        utilisesPartiePrecedente.Clear();
+        for (int tour = 0; tour < voulu; tour++)
+        {
+            foreach (var p in informaticiens)
             {
-                p.GetComponent<PlayerQuests>().ServerAssign(new List<int>());
-                continue;
+                // prochain bureau du paquet qu'il n'a pas déjà ; paquet vide → on le remélange (bureaux partagés)
+                int essais = 0;
+                while (essais++ < paquet.Count * 2)
+                {
+                    if (position >= paquet.Count) { position = 0; Melanger(paquet); }
+                    int id = paquet[position++];
+                    if (choix[p].Contains(id)) continue;
+                    choix[p].Add(id);
+                    utilisesPartiePrecedente.Add(id);
+                    break;
+                }
             }
-
-            var pool = new List<int>(ids);
-            var picked = new List<int>();
-            for (int i = 0; i < questsPerPlayer && pool.Count > 0; i++)
-            {
-                int k = Random.Range(0, pool.Count);
-                picked.Add(pool[k]);
-                pool.RemoveAt(k);
-            }
-            p.GetComponent<PlayerQuests>().ServerAssign(picked);
+        }
+        foreach (var p in informaticiens)
+        {
+            Melanger(choix[p]);
+            p.GetComponent<PlayerQuests>().ServerAssign(choix[p]);
+            Debug.Log($"[Serveur] Quêtes de {p.name} : {string.Join(", ", choix[p])}");
         }
     }
 

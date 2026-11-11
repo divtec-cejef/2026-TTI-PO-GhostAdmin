@@ -11,6 +11,7 @@ public class QuestProgress : NetworkBehaviour
     [SyncVar] public int done;    // quêtes réalisées (tous informaticiens confondus)
     [SyncVar] public int total;   // quêtes à réaliser au total
     [SyncVar] public double sabotageReadyAt;   // heure réseau à partir de laquelle un sabotage est possible
+    [SyncVar(hook = nameof(GraineChange))] public int graineMissions;   // tirée par le serveur : les mini-jeux changent de bureau (Interactable)
 
     // Les quêtes réalisées (Quest Id), une entrée par réalisation : le pirate voit où elles sont, pour saboter.
     public readonly SyncList<int> faites = new SyncList<int>();
@@ -23,10 +24,13 @@ public class QuestProgress : NetworkBehaviour
     public override void OnStartClient()
     {
         Instance = this;
+        if (graineMissions != 0) Interactable.MelangerMissions(graineMissions);   // arrivé en cours de partie
         QuestArrows.Ensure();     // le HUD (barre, contours, flèches) existe dès que l'état de la partie arrive
         Minimap.Ensure();         // la minimap en haut à gauche
     }
     void OnDestroy() { if (Instance == this) Instance = null; }
+
+    void GraineChange(int ancienne, int nouvelle) => Interactable.MelangerMissions(nouvelle);
 
     [Server]
     public void ServerSet(int d, int t) { done = d; total = t; }
