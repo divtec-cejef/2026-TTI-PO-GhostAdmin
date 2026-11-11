@@ -1,21 +1,21 @@
-using Mirror;
+ï»¿using Mirror;
 using UnityEngine;
 
 // Prefab "RoomPlayer" (NetworkIdentity + ce script). Un exemplaire par joueur dans le salon.
-// Dans l'inspecteur : décoche "Show Room GUI" pour utiliser ta propre interface.
+// Dans l'inspecteur : dÃ©coche "Show Room GUI" pour utiliser ta propre interface.
 public class GhostAdminRoomPlayer : NetworkRoomPlayer
 {
-    // Le pseudo tapé dans le menu (vide = « Joueur N »). Répliqué à tous pour la liste du salon.
+    // Le pseudo tapÃ© dans le menu (vide = Â« Joueur N Â»). RÃ©pliquÃ© Ã  tous pour la liste du salon.
     [SyncVar(hook = nameof(PseudoChanged))] public string pseudo = "";
 
-    // Le personnage choisi (index dans Skins.Liste). Décidé par le serveur : jamais deux joueurs avec la même couleur.
+    // Le personnage choisi (index dans Skins.Liste). DÃ©cidÃ© par le serveur : jamais deux joueurs avec la mÃªme couleur.
     [SyncVar(hook = nameof(SkinChanged))] public int skin = -1;
 
     [Header("Nom des joueurs")]
-    [SerializeField] bool nomSelonCouleur = true;   // true : chacun s'appelle comme sa couleur (« Vert », « Rouge »…) ; false : pseudo du menu, sinon « Joueur N »
+    [SerializeField] bool nomSelonCouleur = true;   // true : chacun s'appelle comme sa couleur (Â« Vert Â», Â« Rouge Â»â€¦) ; false : pseudo du menu, sinon Â« Joueur N Â»
 
-    // Le nom affiché partout (salon, au-dessus de la tête, cartes de vote, messages) : la couleur du personnage,
-    // sinon le pseudo tapé dans le menu, sinon « Joueur N ».
+    // Le nom affichÃ© partout (salon, au-dessus de la tÃªte, cartes de vote, messages) : la couleur du personnage,
+    // sinon le pseudo tapÃ© dans le menu, sinon Â« Joueur N Â».
     public string NomAffiche
     {
         get
@@ -25,14 +25,14 @@ public class GhostAdminRoomPlayer : NetworkRoomPlayer
         }
     }
 
-    // À son arrivée, le serveur lui donne la première couleur libre.
+    // Ã€ son arrivÃ©e, le serveur lui donne la premiÃ¨re couleur libre.
     public override void OnStartServer()
     {
         base.OnStartServer();
         if (!Skins.Valide(skin) || SkinPris(skin)) skin = PremierSkinLibre();
     }
 
-    // Mon RoomPlayer vient d'être créé : j'envoie mon pseudo, et la couleur que j'avais la dernière fois.
+    // Mon RoomPlayer vient d'Ãªtre crÃ©Ã© : j'envoie mon pseudo, et la couleur que j'avais la derniÃ¨re fois.
     public override void OnStartLocalPlayer()
     {
         base.OnStartLocalPlayer();
@@ -49,7 +49,7 @@ public class GhostAdminRoomPlayer : NetworkRoomPlayer
         pseudo = p;
     }
 
-    // Appelé par le sélecteur du salon. Refusé si la couleur n'existe pas ou si un autre joueur l'a déjà.
+    // AppelÃ© par le sÃ©lecteur du salon. RefusÃ© si la couleur n'existe pas ou si un autre joueur l'a dÃ©jÃ .
     [Command]
     public void CmdSetSkin(int s)
     {
@@ -73,13 +73,13 @@ public class GhostAdminRoomPlayer : NetworkRoomPlayer
         return 0;
     }
 
-    // Appelé par le bouton PRÊT (via LobbyUI). Annulable : on inverse simplement l'état.
+    // AppelÃ© par le bouton PRÃŠT (via LobbyUI). Annulable : on inverse simplement l'Ã©tat.
     public void ToggleReady()
     {
         if (isLocalPlayer) CmdChangeReadyState(!readyToBegin);
     }
 
-    // Appelés sur tous les clients : on rafraîchit la liste du salon.
+    // AppelÃ©s sur tous les clients : on rafraÃ®chit la liste du salon.
     public override void OnClientEnterRoom() => LobbyUI.RefreshIfOpen();
     public override void OnClientExitRoom() => LobbyUI.RefreshIfOpen();
     public override void ReadyStateChanged(bool oldV, bool newV) => LobbyUI.RefreshIfOpen();
@@ -88,7 +88,7 @@ public class GhostAdminRoomPlayer : NetworkRoomPlayer
 
     void SkinChanged(int oldV, int newV)
     {
-        if (isLocalPlayer && Skins.Valide(newV)) PlayerPrefs.SetInt("skin", newV);   // mémorisé pour la prochaine fois
+        if (isLocalPlayer && Skins.Valide(newV)) PlayerPrefs.SetInt("skin", newV);   // mÃ©morisÃ© pour la prochaine fois
         LobbyUI.RefreshIfOpen();
     }
 }

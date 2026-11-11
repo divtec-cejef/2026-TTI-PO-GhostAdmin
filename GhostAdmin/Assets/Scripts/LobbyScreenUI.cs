@@ -10,6 +10,8 @@ using UnityEngine.UI;
 // en code dans le style de l'affiche : fond sombre, titre GHOST ADMIN / SALON, une carte par place (portrait, nom à sa
 // couleur, badge PRÊT / EN ATTENTE, places libres), les flèches de couleur sur TA carte, et les boutons PRÊT / ANNULER
 // et QUITTER. Son fond opaque recouvre l'ancienne interface de la scène : rien à supprimer.
+// En fond, derrière tout : des personnages qui flottent en tournoyant, d'autres qui marchent en bas de l'écran, et
+// des étoiles qui scintillent (couleurs tirées au hasard ; réglages « Fond animé » plus bas).
 // Tout est pensé pour 1920 × 1080 et s'adapte aux autres résolutions (CanvasScaler).
 public class LobbyScreenUI : MonoBehaviour
 {
@@ -71,13 +73,8 @@ public class LobbyScreenUI : MonoBehaviour
         Etirer(racine);
         racine.GetComponent<Image>().raycastTarget = true;
 
-        // Décor : quelques pixels clairs et deux personnages dans les coins
-        Pixel(new Vector2(140f, -180f), 12f, Texte);
-        Pixel(new Vector2(-180f, -110f), 9f, TexteGris);
-        Pixel(new Vector2(-240f, 150f), 12f, Texte);
-        Pixel(new Vector2(220f, 120f), 9f, TexteGris);
-        Decor(Skins.Apercu(11), new Vector2(0f, 1f), new Vector2(40f, -24f), 140f, -14f, false);
-        Decor(Skins.Apercu(5), new Vector2(1f, 1f), new Vector2(-40f, -30f), 120f, 18f, true);
+        // Fond animé : flotteurs, marcheurs et étoiles, derrière tout le reste
+        ConstruireFondAnime();
 
         // En-tête
         var kicker = Texte_("Kicker", racine, "GHOST ADMIN", 30f, Jaune, FontStyles.Bold, TextAlignmentOptions.Center, policeTitres);
@@ -122,6 +119,7 @@ public class LobbyScreenUI : MonoBehaviour
     void Update()
     {
         if (!construit) return;
+        AnimerFond();
         var clavier = Keyboard.current;
         if (clavier != null)
         {
@@ -267,6 +265,123 @@ public class LobbyScreenUI : MonoBehaviour
         t.textWrappingMode = TextWrappingModes.Normal;
         Ancrer(t.rectTransform, new Vector2(0.5f, 0.5f), new Vector2(0f, -80f), new Vector2(largeur - 40f, 80f));
         return carte;
+    }
+
+    // ---------------------------------------------------------------- fond animé
+
+    // Réglages (modifie ici)
+    const int NombreFlotteurs = 5, NombreMarcheurs = 2, NombreEtoiles = 9;
+    const float OpaciteFlotteurs = 0.32f, OpaciteMarcheurs = 0.55f;
+    const float ImagesParSecondeMarche = 9f;
+
+    class Flotteur { public Image img; public RectTransform rt; public float duree, t, y, taille, sens, montee; }
+    class Marcheur { public Image img; public RectTransform rt; public float duree, t, y, taille, sens; public int skin; }
+    class Etoile { public Image img; public float phase, vitesse; }
+    readonly List<Flotteur> flotteurs = new List<Flotteur>();
+    readonly List<Marcheur> marcheurs = new List<Marcheur>();
+    readonly List<Etoile> etoiles = new List<Etoile>();
+    RectTransform fondAnime;
+
+    void ConstruireFondAnime()
+    {
+        var go = new GameObject("FondAnime", typeof(RectTransform));
+        go.transform.SetParent(racine, false);
+        fondAnime = go.GetComponent<RectTransform>();
+        Etirer(fondAnime);
+        go.AddComponent<RectMask2D>();                                    // rien ne dépasse de l'écran
+
+        for (int i = 0; i < NombreEtoiles; i++)
+        {
+            var e = Boite("Etoile", fondAnime, Texte);
+            float taille = Random.value < 0.5f ? 6f : 9f;
+            var rt = e.GetComponent<RectTransform>();
+            rt.anchorMin = rt.anchorMax = new Vector2(Random.Range(0.03f, 0.97f), Random.Range(0.05f, 0.95f));
+            rt.sizeDelta = new Vector2(taille, taille);
+            etoiles.Add(new Etoile { img = e.GetComponent<Image>(), phase = Random.Range(0f, 6.28f), vitesse = Random.Range(1.6f, 2.6f) });
+        }
+        for (int i = 0; i < NombreFlotteurs; i++)
+        {
+            var f = new Flotteur();
+            var o = Boite("Flotteur", fondAnime, Color.white);
+            f.img = o.GetComponent<Image>(); f.img.preserveAspect = true;
+            f.rt = o.GetComponent<RectTransform>();
+            f.rt.anchorMin = f.rt.anchorMax = new Vector2(0f, 0f);
+            NouveauFlotteur(f, Random.value);                              // déjà en route, à des endroits différents
+            flotteurs.Add(f);
+        }
+        for (int i = 0; i < NombreMarcheurs; i++)
+        {
+            var m = new Marcheur();
+            var o = Boite("Marcheur", fondAnime, new Color(1f, 1f, 1f, OpaciteMarcheurs));
+            m.img = o.GetComponent<Image>(); m.img.preserveAspect = true;
+            m.rt = o.GetComponent<RectTransform>();
+            m.rt.anchorMin = m.rt.anchorMax = new Vector2(0f, 0f);
+            m.sens = i % 2 == 0 ? 1f : -1f;
+            NouveauMarcheur(m, Random.value);
+            marcheurs.Add(m);
+        }
+    }
+
+    // Un personnage au hasard part d'un bord et traverse l'écran en tournoyant (sens alterné)
+    void NouveauFlotteur(Flotteur f, float avancement)
+    {
+        int skin = Random.Range(0, Mathf.Max(1, Skins.Nombre));
+        var s = Skins.Apercu(skin);
+        f.img.sprite = s;
+        f.img.color = s != null ? new Color(1f, 1f, 1f, OpaciteFlotteurs) : new Color(0f, 0f, 0f, 0f);
+        f.taille = Random.Range(80f, 150f);
+        f.rt.sizeDelta = new Vector2(f.taille, f.taille);
+        f.duree = Random.Range(28f, 52f);
+        f.t = avancement;
+        f.sens = Random.value < 0.5f ? 1f : -1f;
+        f.y = Random.Range(0.12f, 0.88f);
+        f.montee = Random.Range(-0.15f, 0.15f);
+    }
+
+    void NouveauMarcheur(Marcheur m, float avancement)
+    {
+        m.skin = Random.Range(0, Mathf.Max(1, Skins.Nombre));
+        m.taille = Random.Range(70f, 90f);
+        m.rt.sizeDelta = new Vector2(m.taille, m.taille);
+        m.duree = Random.Range(18f, 28f);
+        m.t = avancement;
+        m.y = Random.Range(12f, 40f);
+    }
+
+    void AnimerFond()
+    {
+        if (fondAnime == null) return;
+        float W = fondAnime.rect.width, H = fondAnime.rect.height;
+
+        foreach (var e in etoiles)
+        {
+            float a = 0.15f + 0.75f * (0.5f + 0.5f * Mathf.Sin(Time.time * e.vitesse + e.phase));
+            e.img.color = new Color(Texte.r, Texte.g, Texte.b, a);
+        }
+
+        foreach (var f in flotteurs)
+        {
+            f.t += Time.deltaTime / f.duree;
+            if (f.t >= 1f) { NouveauFlotteur(f, 0f); continue; }
+            float x = Mathf.Lerp(-f.taille, W + f.taille, f.sens > 0f ? f.t : 1f - f.t);
+            float y = (f.y + f.montee * f.t) * H;
+            f.rt.anchoredPosition = new Vector2(x, y);
+            f.rt.localRotation = Quaternion.Euler(0f, 0f, -360f * f.t * f.sens);
+            f.rt.localScale = new Vector3(f.sens, 1f, 1f);
+        }
+
+        foreach (var m in marcheurs)
+        {
+            m.t += Time.deltaTime / m.duree;
+            if (m.t >= 1f) { NouveauMarcheur(m, 0f); }
+            float x = Mathf.Lerp(-m.taille, W + m.taille, m.sens > 0f ? m.t : 1f - m.t);
+            m.rt.anchoredPosition = new Vector2(x, m.y + m.taille / 2f);
+            m.rt.localScale = new Vector3(m.sens, 1f, 1f);
+            int image = Mathf.FloorToInt(Time.time * ImagesParSecondeMarche) % 6;   // ligne « marche » de la planche : 6 images
+            var s = Skins.Case(m.skin, image, 2, null);
+            if (s != null) m.img.sprite = s; else if (m.img.sprite == null) m.img.sprite = Skins.Apercu(m.skin);
+            if (m.img.sprite == null) m.img.color = new Color(0f, 0f, 0f, 0f);
+        }
     }
 
     // ---------------------------------------------------------------- actions

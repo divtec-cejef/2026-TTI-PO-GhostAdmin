@@ -157,6 +157,7 @@ public class MissionMotDePasse : MonoBehaviour
 
     void Erreur(string texte)
     {
+        Sons.Jouer("erreur");
         Message(texte, couleurKo);
         StartCoroutine(Secouer(champRt, 0.35f, 10f));
         foreach (var r in regles) if (!r.ok) StartCoroutine(Clignoter(r));
@@ -171,6 +172,7 @@ public class MissionMotDePasse : MonoBehaviour
         champ.interactable = false;
         boutonValider.interactable = false;
         Message("Mot de passe accepté !", couleurOk);
+        Sons.Jouer("coffre");
 
         // 1) le coffre tremble pendant que le cadenas se déverrouille
         yield return Secouer(coffreRt, 0.45f, 6f, true);

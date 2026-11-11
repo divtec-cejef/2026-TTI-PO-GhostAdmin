@@ -296,12 +296,14 @@ public class MissionCables : MonoBehaviour
             if (prise.type == f.type && prise.occupee == null)
             {
                 Brancher(f, prise);
+                Sons.Jouer("branche");
                 if (fiches.TrueForAll(x => x.branchee)) StartCoroutine(Reussir());
                 else Message("Branché ! Au suivant", new Color(0.55f, 1f, 0.6f));
             }
             else
             {
                 Message("Ce n'est pas la bonne prise : regarde sa forme", new Color(1f, 0.6f, 0.45f));
+                Sons.Jouer("erreur");
                 StartCoroutine(Clignoter(prise));
                 Placer(f, f.repos);
             }

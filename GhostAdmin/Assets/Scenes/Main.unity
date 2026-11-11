@@ -1286,6 +1286,36 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c9b2dc9ce659f6644855796b9f97e31b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BriefingUI
+  nouveauBriefing: 1
+  policeTitres: {fileID: 0}
+  policeTexte: {fileID: 0}
+  nbTitreInformaticien: INFORMATICIEN
+  nbButInformaticien: "Ton but : remplir la barre de qu\xEAtes avec ton \xE9quipe,
+    ou \xE9jecter le pirate."
+  nbEtapesInformaticien:
+  - "Suis la fl\xE8che jusqu'aux bureaux <color=#FFD93B><b>jaunes</b></color> et
+    appuie sur <b>E</b> pour faire tes {quetes} qu\xEAtes."
+  - "Si le r\xE9seau sature (attaque DDoS), cours red\xE9marrer le routeur \xE0 temps,
+    sinon toutes les qu\xEAtes repartent \xE0 0."
+  - "Un comportement suspect ? Appuie sur le <color=#FF4D4F><b>bouton rouge</b></color>
+    et votez pour \xE9jecter le pirate."
+  nbVictoireInformaticien: "Vous gagnez si toutes les qu\xEAtes sont faites ou si
+    le pirate est \xE9ject\xE9. Attention : 1 pirate se cache parmi vous {joueurs}."
+  nbRappelInformaticien: "Ne montre pas ton \xE9cran aux autres !"
+  nbTitrePirate: LE PIRATE
+  nbButPirate: "Ton but : emp\xEAcher l'\xE9quipe de finir ses qu\xEAtes, sans te
+    faire d\xE9masquer."
+  nbEtapesPirate:
+  - "Rep\xE8re les bureaux <color=#FF4D4F><b>rouges</b></color> : une mission y a
+    \xE9t\xE9 faite. Appuie sur <b>E</b> pour la saboter, elle est annul\xE9e."
+  - "Appuie sur <b>F</b> pour une attaque DDoS : leurs qu\xEAtes sont bloqu\xE9es,
+    et si personne ne red\xE9marre le routeur, tout repart \xE0 0."
+  - "Pendant les votes, d\xE9fends-toi et accuse les autres : fais-toi passer pour
+    un informaticien."
+  nbVictoirePirate: "Tu gagnes si le chrono atteint 0:00 sans que toutes les qu\xEAtes
+    soient faites, si 2 innocents sont \xE9ject\xE9s, ou s'il ne reste qu'un informaticien
+    face \xE0 toi."
+  nbRappelPirate: 'Garde ton secret : agis comme un informaticien !'
   panel: {fileID: 2137956460}
   roleTitle: {fileID: 2084613716}
   tips: {fileID: 1666304776}

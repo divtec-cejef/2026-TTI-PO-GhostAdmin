@@ -9,7 +9,7 @@ using UnityEngine;
 public class GhostAdminNetworkManager : NetworkRoomManager
 {
     [Header("Ghost Admin")]
-    [SerializeField] float briefingSeconds = 30f;   // durée des instructions (mets 5 pour tester)
+    [SerializeField] float dureeBriefing = 40f;      // durée de l'écran de briefing, en secondes (mets 5 pour tester)
     [SerializeField] int questsPerPlayer = 3;        // nombre de quêtes tirées pour chaque joueur
     [SerializeField] bool eviterRepetition = true;   // les bureaux utilisés à la partie précédente passent en dernier
     [SerializeField] float rechargeSabotage = 0f;    // secondes entre deux sabotages du pirate (0 = aucune attente)
@@ -86,7 +86,7 @@ public class GhostAdminNetworkManager : NetworkRoomManager
         // À un seul joueur (test dans l'éditeur), pas de pirate : sinon il n'aurait jamais de quête.
         int pirate = loaded.Count >= 2 ? Random.Range(0, loaded.Count) : -1;
         if (pirate < 0) Debug.Log("[Serveur] Un seul joueur : pas de pirate (mode test), il est informaticien");
-        double briefingEnd = NetworkTime.time + briefingSeconds;
+        double briefingEnd = NetworkTime.time + dureeBriefing;
 
         for (int i = 0; i < loaded.Count; i++)
             loaded[i].ServerSetRole(i == pirate ? Role.Pirate : Role.Informaticien, briefingEnd);
@@ -269,7 +269,7 @@ public class GhostAdminNetworkManager : NetworkRoomManager
 
     IEnumerator StartMatchAfterBriefing()
     {
-        yield return new WaitForSeconds(briefingSeconds);
+        yield return new WaitForSeconds(dureeBriefing);
         foreach (var p in loaded)
             if (p != null) p.ServerStartMatch();
 

@@ -115,6 +115,7 @@ public class PanneauRouteur : MonoBehaviour
 
     void Eteindre()
     {
+        Sons.Jouer("fermer");
         if (etape != Etape.Sature) return;
         etape = Etape.Eteint;
         minuteur = attente;
@@ -126,6 +127,7 @@ public class PanneauRouteur : MonoBehaviour
 
     void Rallumer()
     {
+        Sons.Jouer("blip");
         if (etape != Etape.Pret) return;
         etape = Etape.Demarrage;
         minuteur = 1.2f;

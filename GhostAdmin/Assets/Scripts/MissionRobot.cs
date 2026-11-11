@@ -52,8 +52,8 @@ public class MissionRobot : MonoBehaviour
     [SerializeField] Color couleurDepart = new Color(0.45f, 0.80f, 0.45f);
     [SerializeField] Color couleurTexte = Color.white;
     [SerializeField] float dureePas = 0.35f;       // secondes par case quand le robot avance
-    [SerializeField] string aide = "Programme le robot avec les flèches, puis START";
-    [SerializeField] string aideSabotage = "Ramène le robot au départ : programme-le à l'envers, puis START";
+    [SerializeField] string texteAide = "Avec la SOURIS : clique sur les flèches pour programmer le robot, puis clique sur START";
+    [SerializeField] string texteAideSabotage = "Avec la SOURIS : clique sur les flèches pour ramener le robot au départ, puis sur START";
 
     // ---- état ----
     readonly List<Vector2Int> cellules = new List<Vector2Int>();
@@ -218,7 +218,7 @@ public class MissionRobot : MonoBehaviour
                                new Vector2(xf0 + 3 * (bf + ef) + bf / 2f + 16f * e + 45f * e, yFleches), new Vector2(90f * e, 36f * e), EffacerTout, 14f * e);
 
         // 3) Le message
-        message = Texte("Message", racine, modeSabotage ? aideSabotage : aide, 16f * e, couleurTexte, FontStyles.Bold);
+        message = Texte("Message", racine, modeSabotage ? texteAideSabotage : texteAide, 16f * e, couleurTexte, FontStyles.Bold);
         message.rectTransform.anchoredPosition = new Vector2(0f, yFleches - 40f * e);
         message.rectTransform.sizeDelta = new Vector2(w - 24f, 26f * e);
 
