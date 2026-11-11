@@ -34,6 +34,7 @@ public class BriefingEcran : MonoBehaviour
     }
 
     public static void Cacher() { if (instance != null) Destroy(instance.gameObject); }
+    public static bool Visible => instance != null;          // lu par Sons (son de révélation du rôle)
 
     Contenu contenu;
     double fin;
@@ -181,42 +182,52 @@ public class BriefingEcran : MonoBehaviour
         y += hv;
 
         // Les touches de ton rôle
+        // Toutes les touches du jeu, sur deux rangées de 4
         var touches = p
             ? new List<Touche>
             {
-                new Touche { touche = "E", texte = "Saboter les bureaux <color=#FF4D4F>rouges</color>" },
+                new Touche { touche = "WASD", texte = "Se déplacer (ou les flèches)", large = true },
+                new Touche { touche = "E", texte = "Saboter les bureaux <color=#FF4D4F>rouges</color>, entrer dans un évent, le routeur" },
                 new Touche { touche = "F", texte = "Hack DDoS : couper le réseau", rouge = true },
-                new Touche { touche = "E", texte = "Évents, puis W A S D pour te déplacer" },
-                new Touche { touche = "TAB", texte = "Minimap : missions faites", large = true },
+                new Touche { touche = "WASD", texte = "Dans un évent : choisir l'évent suivant", large = true },
+                new Touche { touche = "TAB", texte = "Minimap : missions faites à saboter", large = true },
+                new Touche { touche = "ÉCHAP", texte = "Quitter un panneau, sortir d'un évent", large = true },
                 new Touche { touche = "H", texte = "Afficher / masquer l'aide" },
+                new Touche { touche = "CLIC", texte = "Souris : mini-jeux et votes", large = true },
             }
             : new List<Touche>
             {
-                new Touche { touche = "E", texte = "Faire une quête aux bureaux <color=#FFD93B>jaunes</color>" },
+                new Touche { touche = "WASD", texte = "Se déplacer (ou les flèches)", large = true },
+                new Touche { touche = "E", texte = "Faire une quête aux bureaux <color=#FFD93B>jaunes</color>, le routeur" },
+                new Touche { touche = "E", texte = "Au <color=#FF4D4F>bouton rouge</color> : réunion d'urgence", rouge = true },
                 new Touche { touche = "TAB", texte = "Agrandir la minimap", large = true },
-                new Touche { touche = "!", texte = "Bouton rouge : réunion d'urgence", rouge = true },
+                new Touche { touche = "ÉCHAP", texte = "Quitter un panneau ou la grande carte", large = true },
                 new Touche { touche = "H", texte = "Afficher / masquer l'aide du guide" },
+                new Touche { touche = "CLIC", texte = "Souris : mini-jeux et votes", large = true },
+                new Touche { touche = "ENTRÉE", texte = "Valider un mot de passe", large = true },
             };
-        float yCartes = Mathf.Max(yRangee + 220f + 16f, y) + 30f;
-        const float largeurCartes = 1150f, ecart = 14f, hCarte = 68f;
-        float lc = (largeurCartes - ecart * (touches.Count - 1)) / touches.Count;
+        float yCartes = Mathf.Max(yRangee + 220f + 16f, y) + 24f;
+        const float largeurCartes = 1150f, ecart = 12f, hCarte = 58f;
+        const int parRangee = 4;
+        float lc = (largeurCartes - ecart * (parRangee - 1)) / parRangee;
         for (int i = 0; i < touches.Count; i++)
         {
             var tc = touches[i];
             var carte = Boite("Touche " + tc.touche, c, bord);
-            Haut(carte.rectTransform, (1280f - largeurCartes) / 2f + i * (lc + ecart), yCartes, lc, hCarte);
+            int col = i % parRangee, rangee = i / parRangee;
+            Haut(carte.rectTransform, (1280f - largeurCartes) / 2f + col * (lc + ecart), yCartes + rangee * (hCarte + ecart), lc, hCarte);
             var fc = Boite("Fond", carte.transform, fondCarte); Etirer(fc.rectTransform, 2f);
-            float lt = tc.large ? 64f : 44f;
+            float lt = tc.large ? 76f : 40f;
             var ombreTouche = Boite("Ombre", fc.transform, tc.rouge ? new Color32(140, 26, 29, 255) : new Color32(150, 150, 160, 255));
-            Gauche(ombreTouche.rectTransform, 12f, -4f, lt, 44f);
+            Gauche(ombreTouche.rectTransform, 10f, -4f, lt, 38f);
             var touche = Boite("Touche", fc.transform, tc.rouge ? accentRouge : (Color)texte);
-            Gauche(touche.rectTransform, 12f, 0f, lt, 44f);
-            var lettre = Txt("Lettre", touche.transform, tc.touche, tc.large ? 20f : 26f, tc.rouge ? Color.white : fond, FontStyles.Bold, TextAlignmentOptions.Center, contenu.policeTitres);
+            Gauche(touche.rectTransform, 10f, 0f, lt, 38f);
+            var lettre = Txt("Lettre", touche.transform, tc.touche, tc.large ? 17f : 22f, tc.rouge ? Color.white : fond, FontStyles.Bold, TextAlignmentOptions.Center, contenu.policeTitres);
             Etirer(lettre.rectTransform);
             var desc = Txt("Texte", fc.transform, tc.texte, 15f, texte, FontStyles.Normal, TextAlignmentOptions.MidlineLeft, contenu.policeTexte);
             desc.textWrappingMode = TextWrappingModes.Normal;
             desc.fontSizeMin = 11f;
-            Gauche(desc.rectTransform, 12f + lt + 12f, 0f, lc - (12f + lt + 12f) - 10f, hCarte - 8f);
+            Gauche(desc.rectTransform, 10f + lt + 10f, 0f, lc - (10f + lt + 10f) - 8f, hCarte - 6f);
         }
 
         // En bas : compte à rebours et rappel

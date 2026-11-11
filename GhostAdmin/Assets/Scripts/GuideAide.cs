@@ -263,19 +263,19 @@ public class GuideAide : MonoBehaviour
             if (sabotage)
             {
                 titre = "Sabotage : dérégler le robot";
-                texte = "Ramène le robot à son point de départ en faisant le chemin à l'envers.\n"
-                      + "1. Clique les flèches dans l'ordre pour remplir le programme.\n"
-                      + "2. Appuie sur START : le robot exécute tout d'un coup.\n"
-                      + "3. Raté ? EFFACER, puis recommence.\n"
+                texte = "Ramène le robot à son point de départ en faisant le chemin à l'envers. Tout se fait <b>à la souris</b>.\n"
+                      + "1. Clique sur les flèches, dans l'ordre, pour remplir le programme.\n"
+                      + "2. Clique sur START : le robot exécute tout d'un coup.\n"
+                      + "3. Raté ? Clique sur EFFACER, puis recommence.\n"
                       + "La mission de ce bureau sera annulée.";
             }
             else
             {
                 titre = "Programmer le robot";
-                texte = "Le robot doit suivre le chemin jusqu'à la ligne d'arrivée.\n"
-                      + "1. Clique les flèches dans l'ordre : chaque flèche le fait avancer d'une case.\n"
-                      + "2. Appuie sur START : il exécute tout le programme d'un coup.\n"
-                      + "3. Raté ? EFFACER, puis recommence.\n"
+                texte = "Le robot doit suivre le chemin jusqu'à la ligne d'arrivée. Tout se fait <b>à la souris</b> (pas au clavier).\n"
+                      + "1. Clique sur les flèches, dans l'ordre : chaque flèche le fait avancer d'une case.\n"
+                      + "2. Clique sur START : il exécute tout le programme d'un coup.\n"
+                      + "3. Raté ? Clique sur EFFACER (ou sur une case du programme), puis recommence.\n"
                       + "Astuce : compte les cases avant chaque virage.";
             }
         }

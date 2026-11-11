@@ -28,6 +28,8 @@ public class HackReseauUI : MonoBehaviour
     RectTransform bandeau;
     TMP_Text bandeauTxt, etatHack;
     bool etaitSature;
+    Image voile;                          // léger voile rouge sur tout l'écran pendant l'attaque
+    readonly Image[] bords = new Image[4]; // et des bords rouges qui pulsent, comme une alarme
     bool consoleEtaitOuverte;
 
     void Awake()
@@ -40,6 +42,25 @@ public class HackReseauUI : MonoBehaviour
         scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
         scaler.referenceResolution = new Vector2(1920f, 1080f);
         scaler.matchWidthOrHeight = 0.5f;
+
+        // Alarme visuelle : voile rouge + bords qui pulsent (sous le bandeau)
+        var v = Boite("VoileAlarme", transform, new Color(1f, 0f, 0f, 0f));
+        voile = v.GetComponent<Image>();
+        Etirer(voile.rectTransform);
+        for (int i = 0; i < 4; i++)
+        {
+            var bo = Boite("BordAlarme", transform, new Color(1f, 0.1f, 0.1f, 0f));
+            var r = bo.GetComponent<RectTransform>();
+            bool horizontal = i < 2;
+            r.anchorMin = horizontal ? new Vector2(0f, i == 0 ? 0f : 1f) : new Vector2(i == 2 ? 0f : 1f, 0f);
+            r.anchorMax = horizontal ? new Vector2(1f, i == 0 ? 0f : 1f) : new Vector2(i == 2 ? 0f : 1f, 1f);
+            r.pivot = horizontal ? new Vector2(0.5f, i == 0 ? 0f : 1f) : new Vector2(i == 2 ? 0f : 1f, 0.5f);
+            r.anchoredPosition = Vector2.zero;
+            r.sizeDelta = horizontal ? new Vector2(0f, 26f) : new Vector2(26f, 0f);
+            bords[i] = bo.GetComponent<Image>();
+        }
+        voile.gameObject.SetActive(false);
+        foreach (var bo in bords) bo.gameObject.SetActive(false);
 
         // Bandeau d'alerte (informaticiens), en haut, sous la barre de quêtes
         var b = Boite("Bandeau", transform, new Color(0.55f, 0.06f, 0.08f, 0.88f));
@@ -108,6 +129,15 @@ public class HackReseauUI : MonoBehaviour
             }
         }
         bandeau.gameObject.SetActive(touche);
+        bool alarmeVisible = touche && !QuestSession.IsOpen;
+        voile.gameObject.SetActive(alarmeVisible);
+        foreach (var bo in bords) bo.gameObject.SetActive(alarmeVisible);
+        if (alarmeVisible)
+        {
+            float pulse = 0.5f + 0.5f * Mathf.Sin(Time.unscaledTime * Mathf.PI * 2f);   // une pulsation par seconde, comme la sirène
+            voile.color = new Color(1f, 0f, 0f, 0.03f + 0.05f * pulse);
+            foreach (var bo in bords) bo.color = new Color(1f, 0.1f, 0.1f, 0.15f + 0.35f * pulse);
+        }
         if (touche)
         {
             string ou = Routeur.Instance != null ? Routeur.Instance.NomLieu : "la salle serveur";
@@ -146,6 +176,8 @@ public class HackReseauUI : MonoBehaviour
         {
             bandeau.gameObject.SetActive(false);
             etatHack.gameObject.SetActive(false);
+            voile.gameObject.SetActive(false);
+            foreach (var bord in bords) bord.gameObject.SetActive(false);
             if (etaitSature) { etaitSature = false; GuideAide.Taire(); }
             if (Routeur.Instance != null) Routeur.Instance.SetFocused(false);
         }

@@ -43,6 +43,8 @@ public class MatchHUD : MonoBehaviour
 
     // Résultat
     GameObject resultPanel;
+    RectTransform ejecteVol;                 // le portrait de l'éjecté qui traverse l'écran en tournoyant
+    float debutResultat = -1f;
     TMP_Text rTitre, rSous, rVainqueur, rRaison, rVotes, rRetour;
 
     void Awake()
@@ -105,6 +107,17 @@ public class MatchHUD : MonoBehaviour
     {
         resultPanel = Boite("Resultat", transform, FondOverlay, Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero);
         resultPanel.GetComponent<Image>().raycastTarget = true;
+
+        // Animation d'éjection : derrière les textes
+        var vol = new GameObject("EjecteVol", typeof(RectTransform));
+        vol.transform.SetParent(resultPanel.transform, false);
+        var imgVol = vol.AddComponent<Image>();
+        imgVol.preserveAspect = true;
+        imgVol.raycastTarget = false;
+        ejecteVol = vol.GetComponent<RectTransform>();
+        ejecteVol.anchorMin = ejecteVol.anchorMax = ejecteVol.pivot = new Vector2(0.5f, 0.5f);
+        ejecteVol.sizeDelta = new Vector2(150f, 150f);
+        vol.SetActive(false);
 
         rTitre = Texte("Titre", resultPanel.transform, "", 36f, Color.white, FontStyles.Bold);
         Placer(rTitre.rectTransform, new Vector2(0.5f, 0.5f), new Vector2(0f, 150f), new Vector2(1000f, 50f));
@@ -378,12 +391,17 @@ public class MatchHUD : MonoBehaviour
                 float reste = flow.SecondesRestantes(flow.finPartie);
                 chronoTexte.text = Format(reste);
                 chronoTexte.color = reste <= 30f ? Rouge : Color.white;
+                // 10 dernières secondes : le chrono « bat » à chaque seconde
+                float battement = reste <= 10f && reste > 0f ? Mathf.Clamp01((reste - Mathf.Floor(reste) - 0.7f) / 0.3f) : 0f;
+                chronoTexte.rectTransform.localScale = Vector3.one * (1f + 0.25f * battement);
+                debutResultat = -1f;
                 monVote = 0;
                 voteEnAttente = 0;
                 break;
 
             case PhasePartie.Vote:
                 Afficher(chrono, false); Afficher(resultPanel, false);
+                debutResultat = -1f;
                 if (!votePanel.activeSelf)
                 {
                     QuestSession.Cancel();                             // une mission ouverte se ferme : on vote
@@ -398,12 +416,41 @@ public class MatchHUD : MonoBehaviour
                 Afficher(chrono, false); Afficher(votePanel, false);
                 Afficher(resultPanel, true);
                 MettreAJourResultat(flow);
+                AnimerEjection(flow);
                 break;
 
             default:
                 Afficher(chrono, false); Afficher(votePanel, false); Afficher(resultPanel, false);
                 break;
         }
+    }
+
+    // Le joueur éjecté traverse l'écran de gauche à droite en tournoyant, derrière le texte (4 s)
+    void AnimerEjection(MatchFlow flow)
+    {
+        if (debutResultat < 0f)
+        {
+            debutResultat = Time.time;
+            bool montrer = false;
+            if (flow.ejecteNetId != 0)
+                foreach (var c in flow.candidats)
+                    if (c.netId == flow.ejecteNetId)
+                    {
+                        var img = ejecteVol.GetComponent<Image>();
+                        img.sprite = PortraitPour(flow, c);
+                        img.color = img.sprite != null ? Color.white : CouleurCandidat(c);
+                        montrer = true;
+                        break;
+                    }
+            ejecteVol.gameObject.SetActive(montrer);
+        }
+        if (!ejecteVol.gameObject.activeSelf) return;
+        float t = (Time.time - debutResultat) / 4f;
+        if (t >= 1f) { ejecteVol.gameObject.SetActive(false); return; }
+        float largeur = ((RectTransform)resultPanel.transform).rect.width;
+        ejecteVol.anchoredPosition = new Vector2(Mathf.Lerp(-largeur * 0.6f, largeur * 0.6f, t), 230f + 30f * Mathf.Sin(t * Mathf.PI * 2f));
+        ejecteVol.localRotation = Quaternion.Euler(0f, 0f, -540f * t);
+        ejecteVol.localScale = Vector3.one * Mathf.Lerp(1.1f, 0.7f, t);
     }
 
     // ---------------------------------------------------------------- petites fabriques d'interface

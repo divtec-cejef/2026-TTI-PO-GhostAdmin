@@ -41,7 +41,7 @@ public class PlayerInteraction : NetworkBehaviour
         filtre = ContactFilter2D.noFilter;                // toutes les couches, zones (triggers) comprises
     }
 
-    public override void OnStartLocalPlayer() => QuestSession.Reinitialiser();   // jamais un panneau « resté ouvert » d'une partie précédente
+    public override void OnStartLocalPlayer() { QuestSession.Reinitialiser(); astuceEventVue = false; }   // jamais un panneau « resté ouvert » d'une partie précédente
 
     void OnDisable() { Liberer(); }
 
@@ -136,6 +136,11 @@ public class PlayerInteraction : NetworkBehaviour
             if (ventCourant != null) ventCourant.SetFocused(false);
             ventCourant = nouveauVent;
             if (ventCourant != null) ventCourant.SetFocused(true);
+            if (ventCourant != null && !astuceEventVue)                // première fois près d'un évent : on explique
+            {
+                astuceEventVue = true;
+                QuestBar.Notify("Évent : appuie sur E pour te cacher dedans et voyager discrètement");
+            }
         }
 
         if (meilleur != current)
@@ -167,8 +172,15 @@ public class PlayerInteraction : NetworkBehaviour
 
     // ---------------------------------------------------------------- les évents (pirate)
 
+    static bool astuceEventVue;                                       // le petit message « Évent : appuie sur E » n'apparaît qu'une fois
+
     void EntrerEvent(Vent v)
     {
+        GuideAide.Dire("Les évents",
+            "Tu es caché dans les conduits : personne ne te voit.\n"
+            + "1. <b>W A S D</b> (ou les flèches) : file vers l'évent voisin dans cette direction. Les petites flèches jaunes montrent où tu peux aller.\n"
+            + "2. <b>E</b> ou <b>Échap</b> : ressors par l'évent où tu es.\n"
+            + "Ressors quand personne ne regarde : si un informaticien te voit sortir d'un évent, tu es démasqué !");
         ventOccupe = v;
         identity.TeleporterLocal(v.PositionDedans);                   // pile sur l'évent, pour en ressortir au bon endroit
         identity.EntrerDansEvent(true);                               // caché et immobile, chez tout le monde
@@ -203,6 +215,7 @@ public class PlayerInteraction : NetworkBehaviour
 
     void TerminerSortie()
     {
+        GuideAide.Taire();
         sortieEventA = -1f;
         ventOccupe = null;
         identity.EntrerDansEvent(false);
