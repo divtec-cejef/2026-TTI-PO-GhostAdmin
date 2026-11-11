@@ -12,4 +12,9 @@ public class AideQuete : MonoBehaviour
     [TextArea(4, 10)]
     public string texte = "";                        // vide = explication par défaut (une étape par ligne)
     public Position position = Position.Automatique; // où se place le guide (Automatique = en bas à gauche)
+
+    [Header("Le savais-tu ? (une petite info à apprendre, 2 ou 3 phrases)")]
+    public bool afficherLeSavaisTu = true;
+    [TextArea(2, 4)]
+    public string[] leSavaisTu;                      // vide = les infos par défaut de la mission ; plusieurs = une au hasard à chaque fois
 }

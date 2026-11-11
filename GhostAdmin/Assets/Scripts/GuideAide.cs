@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
 using UnityEngine.InputSystem;
@@ -103,18 +104,82 @@ public class GuideAide : MonoBehaviour
         var aide = panneau.GetComponentInChildren<AideQuete>(true);
         if (aide != null && !aide.afficherAide) { Cacher(); return; }
 
-        TexteParDefaut(panneau, out string titre, out string texte);
+        TexteParDefaut(panneau, out string titre, out string texte, out string cle);
         if (aide != null && !string.IsNullOrWhiteSpace(aide.titre)) titre = aide.titre;
         if (aide != null && !string.IsNullOrWhiteSpace(aide.texte)) texte = aide.texte;
+
+        // « Le savais-tu ? » : une petite info à retenir, différente d'une fois sur l'autre
+        string[] faits = aide != null && aide.leSavaisTu != null && aide.leSavaisTu.Length > 0 ? aide.leSavaisTu
+                       : (Faits.TryGetValue(cle, out var f) ? f : null);
+        string fait = aide != null && !aide.afficherLeSavaisTu ? null : Tirer(cle, faits);
+        if (!string.IsNullOrWhiteSpace(fait))
+            texte += $"\n\n<color=#{CouleurSavais}><b>Le savais-tu ?</b></color> {fait}";
+
         Afficher(titre, texte, aide != null ? aide.position : AideQuete.Position.Automatique);
     }
 
+    // ---------------------------------------------------------------- « Le savais-tu ? »
+
+    const string CouleurSavais = "1F5FAD";                         // bleu foncé : lisible sur la bulle blanche
+    static readonly Dictionary<string, int> dernierFait = new Dictionary<string, int>();
+
+    // Un fait au hasard, jamais deux fois de suite le même pour une même mission.
+    static string Tirer(string cle, string[] faits)
+    {
+        if (faits == null || faits.Length == 0) return null;
+        int precedent = dernierFait.TryGetValue(cle ?? "", out var d) ? d : -1;
+        int i = Random.Range(0, faits.Length);
+        if (faits.Length > 1 && i == precedent) i = (i + 1) % faits.Length;
+        dernierFait[cle ?? ""] = i;
+        return faits[i];
+    }
+
+    // 2 ou 3 phrases maximum chacun : de quoi apprendre un vrai réflexe d'informatique en jouant.
+    static readonly Dictionary<string, string[]> Faits = new Dictionary<string, string[]>
+    {
+        ["fichiers"] = new[]
+        {
+            "Un cheval de Troie se fait passer pour un programme utile afin de s'installer sur ton ordinateur. Méfie-toi des pièces jointes en .exe ou .bat, même si elles semblent venir d'un ami.",
+            "Un keylogger enregistre tout ce que tu tapes au clavier, mots de passe compris. Un antivirus à jour et un mot de passe différent pour chaque site limitent les dégâts.",
+            "Un rançongiciel chiffre tes fichiers et réclame de l'argent pour les rendre. La meilleure protection : des sauvegardes régulières sur un disque qu'on débranche ensuite.",
+            "Un fichier peut cacher sa vraie extension : « photo.jpg.exe » reste un programme. Affiche les extensions dans l'explorateur de fichiers pour ne pas te faire piéger.",
+        },
+        ["robot"] = new[]
+        {
+            "Un programme est une suite d'instructions exécutées dans l'ordre, exactement comme ton robot. L'ordinateur ne devine rien : une seule flèche de travers et tout le trajet change.",
+            "Une suite d'étapes qui résout un problème s'appelle un algorithme, comme une recette de cuisine. Ton programme de flèches en est un !",
+            "Chercher et corriger les erreurs d'un programme s'appelle déboguer. Le mot « bug » a été rendu célèbre par un vrai insecte retrouvé coincé dans un ordinateur en 1947.",
+        },
+        ["cables"] = new[]
+        {
+            "Le câble Ethernet, avec sa prise RJ45, relie un ordinateur au réseau. Il est souvent plus rapide et plus stable que le Wi-Fi.",
+            "Le HDMI transporte à la fois l'image et le son numériques vers un écran, dans un seul câble.",
+            "USB veut dire « Universal Serial Bus » : un même type de prise pour brancher clavier, souris, clé de stockage ou chargeur.",
+            "La prise jack 3,5 mm transporte le son vers un casque ou des enceintes. On l'utilise depuis les années 1960, bien avant les ordinateurs portables.",
+        },
+        ["sabotage-fichiers"] = new[]
+        {
+            "Supprimer un fichier ne l'efface pas vraiment : il part d'abord dans la corbeille, d'où n'importe qui peut le restaurer. Pour s'en débarrasser, il faut aussi vider la corbeille.",
+            "Quelqu'un qui a accès à ton ordinateur peut restaurer ce que tu crois supprimé. Verrouille ta session (touches Windows + L) dès que tu t'éloignes.",
+        },
+        ["sabotage-robot"] = new[]
+        {
+            "Un sabotage de code peut être minuscule : inverser une seule instruction suffit à tout dérégler. C'est pour ça que les développeurs relisent le code des autres avant de l'accepter : on appelle ça une revue de code.",
+        },
+        ["sabotage-cables"] = new[]
+        {
+            "Débrancher un seul câble réseau coupe un poste de tout le reste de l'entreprise. C'est pour ça que les armoires où arrivent les câbles sont souvent fermées à clé.",
+        },
+    };
+
     // Les explications par défaut, selon la mission reconnue sur le panneau.
-    static void TexteParDefaut(GameObject panneau, out string titre, out string texte)
+    static void TexteParDefaut(GameObject panneau, out string titre, out string texte, out string cle)
     {
         bool sabotage = QuestSession.IsSabotage;
+        cle = "";
         if (panneau.GetComponentInChildren<SabotageCorbeille>(true) != null)
         {
+            cle = "sabotage-fichiers";
             titre = "Sabotage : restaurer les virus";
             texte = "Un informaticien a jeté des virus à la corbeille. Remets-les en place !\n"
                   + "1. Clique sur chaque fichier pour le sélectionner (il s'encadre en jaune).\n"
@@ -123,14 +188,38 @@ public class GuideAide : MonoBehaviour
         }
         else if (panneau.GetComponentInChildren<MissionCorbeille>(true) != null)
         {
+            cle = "fichiers";
             titre = "Nettoyer l'ordinateur";
             texte = "Des fichiers dangereux se cachent parmi les fichiers normaux.\n"
                   + "1. Lis le nom de chaque fichier : .exe, .bat, .dll, .js, .vbs ou .sh, c'est suspect.\n"
                   + "2. Glisse les fichiers dangereux dans la corbeille rouge.\n"
                   + "3. Laisse les autres : la corbeille refuse les fichiers sains.";
         }
+        else if (panneau.GetComponentInChildren<MissionCables>(true) != null)
+        {
+            cle = sabotage ? "sabotage-cables" : "cables";
+            if (sabotage)
+            {
+                titre = "Sabotage : tout débrancher";
+                texte = "Coupe le réseau de ce bureau !\n"
+                      + "1. Attrape une fiche branchée dans le boîtier.\n"
+                      + "2. Tire-la hors du boîtier et lâche-la : le voyant devient rouge.\n"
+                      + "3. Recommence pour les 4 câbles.\n"
+                      + "La mission de ce bureau sera annulée.";
+            }
+            else
+            {
+                titre = "Relier les bons câbles";
+                texte = "Chaque câble a sa prise : Ethernet, HDMI, USB et Jack.\n"
+                      + "1. Attrape une fiche à gauche avec la souris.\n"
+                      + "2. Glisse-la sur la prise qui a la même forme, dans le boîtier.\n"
+                      + "3. Bonne prise : le voyant passe au vert. Mauvaise : la fiche revient.\n"
+                      + "Les 4 voyants verts : quête réussie !";
+            }
+        }
         else if (panneau.GetComponentInChildren<MissionRobot>(true) != null)
         {
+            cle = sabotage ? "sabotage-robot" : "robot";
             if (sabotage)
             {
                 titre = "Sabotage : dérégler le robot";
