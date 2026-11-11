@@ -12,6 +12,8 @@ public static class QuestSession
     static GameObject panel;
     static PlayerQuests owner;
 
+    public static GameObject Panel => IsOpen ? panel : null;   // le panneau ouvert (lu par GuideAide)
+
     // Informaticien : ouvre la mission de l'objet.
     public static void Open(Interactable target, PlayerQuests quests)
     {
