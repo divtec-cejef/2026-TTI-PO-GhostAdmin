@@ -91,12 +91,21 @@ public class GuideAide : MonoBehaviour
         if (!visible) return;
 
         var clavier = Keyboard.current;
-        if (clavier != null && clavier[ToucheMasquer].wasPressedThisFrame) Basculer();
+        if (clavier != null && clavier[ToucheMasquer].wasPressedThisFrame && !SaisieEnCours()) Basculer();
 
         // Le guide respire un peu, et la bulle s'écrit lettre par lettre
         perso.anchoredPosition = new Vector2(perso.anchoredPosition.x, Mathf.Round(Mathf.Sin(Time.unscaledTime * 3f) * 4f));
         if (VitesseEcriture > 0f && corpsTxt.maxVisibleCharacters < corpsTxt.textInfo.characterCount)
             corpsTxt.maxVisibleCharacters = Mathf.FloorToInt((Time.unscaledTime - debutEcriture) * VitesseEcriture);
+    }
+
+    // Le joueur est en train de taper dans un champ (mot de passe…) : la touche H est une lettre, pas un raccourci
+    static bool SaisieEnCours()
+    {
+        var es = UnityEngine.EventSystems.EventSystem.current;
+        var sel = es != null ? es.currentSelectedGameObject : null;
+        var champ = sel != null ? sel.GetComponent<TMP_InputField>() : null;
+        return champ != null && champ.isFocused;
     }
 
     void MontrerPour(GameObject panneau)
@@ -157,6 +166,17 @@ public class GuideAide : MonoBehaviour
             "USB veut dire « Universal Serial Bus » : un même type de prise pour brancher clavier, souris, clé de stockage ou chargeur.",
             "La prise jack 3,5 mm transporte le son vers un casque ou des enceintes. On l'utilise depuis les années 1960, bien avant les ordinateurs portables.",
         },
+        ["mdp"] = new[]
+        {
+            "Plus un mot de passe est long, plus il est dur à deviner : chaque caractère en plus multiplie le nombre de combinaisons. Une phrase de passe de plusieurs mots est à la fois solide et facile à retenir.",
+            "Utilise un mot de passe différent pour chaque site. Si un site se fait pirater, les pirates essaient aussitôt le même mot de passe partout ailleurs.",
+            "« 123456 » et « azerty » font partie des mots de passe les plus utilisés au monde : un pirate les teste en premier. Un gestionnaire de mots de passe peut en créer et en retenir des solides pour toi.",
+            "La double authentification ajoute une deuxième preuve, comme un code reçu sur ton téléphone. Même avec ton mot de passe, un pirate ne peut alors pas entrer.",
+        },
+        ["sabotage-mdp"] = new[]
+        {
+            "Les pirates utilisent des listes de millions de mots de passe déjà volés pour en deviner de nouveaux. Un mot de passe faible ou réutilisé se fait casser en quelques secondes.",
+        },
         ["sabotage-fichiers"] = new[]
         {
             "Supprimer un fichier ne l'efface pas vraiment : il part d'abord dans la corbeille, d'où n'importe qui peut le restaurer. Pour s'en débarrasser, il faut aussi vider la corbeille.",
@@ -194,6 +214,26 @@ public class GuideAide : MonoBehaviour
                   + "1. Lis le nom de chaque fichier : .exe, .bat, .dll, .js, .vbs ou .sh, c'est suspect.\n"
                   + "2. Glisse les fichiers dangereux dans la corbeille rouge.\n"
                   + "3. Laisse les autres : la corbeille refuse les fichiers sains.";
+        }
+        else if (panneau.GetComponentInChildren<MissionMotDePasse>(true) != null)
+        {
+            cle = sabotage ? "sabotage-mdp" : "mdp";
+            if (sabotage)
+            {
+                titre = "Sabotage : affaiblir le coffre";
+                texte = "Remplace le mot de passe du coffre par un mot de passe faible.\n"
+                      + "1. Tape un mot de passe qui enfreint plusieurs règles (court, tout en chiffres…).\n"
+                      + "2. Clique sur Valider.\n"
+                      + "La mission de ce bureau sera annulée.";
+            }
+            else
+            {
+                titre = "Protéger le coffre-fort";
+                texte = "Choisis un nouveau mot de passe solide pour le coffre.\n"
+                      + "1. Tape-le dans le champ en bas : chaque règle passe au vert quand elle est respectée.\n"
+                      + "2. Quand tout est vert, clique sur Valider (ou Entrée).\n"
+                      + "Astuce : une phrase avec des chiffres et des symboles, comme « J'aime2Chats! », c'est facile à retenir.";
+            }
         }
         else if (panneau.GetComponentInChildren<MissionCables>(true) != null)
         {
