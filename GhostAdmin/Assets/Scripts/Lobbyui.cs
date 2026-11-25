@@ -33,6 +33,12 @@ public class LobbyUI : MonoBehaviour
 
     void Start()
     {
+        // PC hôte qui ne joue pas : pas d'écran de salon, l'écran serveur (ServeurUI) recouvre tout.
+        if (ServeurUI.Actif)
+        {
+            if (playerList != null) playerList.gameObject.SetActive(false);
+            return;
+        }
         if (nouveauSalon)
         {
             LobbyScreenUI.Ensure(policeTitres, policeTexte, nombreDePlaces);   // l'écran complet, par-dessus la scène
@@ -68,6 +74,7 @@ public class LobbyUI : MonoBehaviour
 
     void Refresh()
     {
+        if (ServeurUI.Actif) return;
         var players = FindObjectsByType<GhostAdminRoomPlayer>()
                       .OrderBy(p => p.index);
 
