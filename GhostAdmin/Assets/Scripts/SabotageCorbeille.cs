@@ -1,301 +1,293 @@
+using System.Collections;
 using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
-// SUR LE PANNEAU DE SABOTAGE (PanelMissionFichierSabotage). À l'ouverture, affiche les fichiers
-// « supprimés » (icône + nom) dans ListeCorbeille. Le pirate clique chaque fichier pour le sélectionner,
-// puis clique BarreConfirmation : le sabotage part au serveur.
-// Le script place lui-même la barre (grande, en bas du panneau) et la liste des fichiers au-dessus :
-// rien ne peut se chevaucher. Décoche « Gerer Disposition » pour reprendre la main dans l'éditeur.
+// SUR LE PANNEAU DE SABOTAGE (PanelMissionFichierSabotage). Même look que la démo (fenêtre construite par FenetreDemo,
+// dans MissionCorbeille.cs). Le pirate n'a qu'UN clic à faire :
+//  - à gauche, une grande corbeille rouge qui pulse, avec les noms des 3 virus jetés dedans (« CLIQUE POUR RESTAURER ») ;
+//  - à droite, le bureau de l'informaticien ;
+//  - un clic sur la corbeille : les virus ressortent un par un sur le bureau (ils clignotent en rouge), l'écran
+//    « VIRUS RÉINSTALLÉS » s'affiche, puis le sabotage part au serveur tout seul (la mission de ce bureau est annulée).
+// Le décor d'origine du panneau (ListeCorbeille, BarreConfirmation...) est seulement caché pendant le sabotage.
 public class SabotageCorbeille : MonoBehaviour
 {
-    // ← Les noms des fichiers supprimés que le pirate restaure : les dangereux de MissionCorbeille.
-    static readonly string[] NomsParDefaut = { "virus.exe", "cheval_de_troie.bat", "keylogger.dll", "ransomware.js", "spyware.vbs", "backdoor.sh" };
-
-    [Header("Objets du panneau")]
+    [Header("Objets du panneau (cachés pendant le sabotage, rien à supprimer)")]
     [SerializeField] RectTransform listeCorbeille;  // ListeCorbeille
     [SerializeField] Image barreConfirmation;       // BarreConfirmation
 
     [Header("Fichiers")]
-    [SerializeField] Sprite spriteFichier;          // Fichier_m1
-    [SerializeField] Sprite spriteSelectionne;      // FichierSelectionne (vide = teinte jaune)
-    [SerializeField] int nombreFichiers = 3;                  // combien de fichiers supprimés afficher (= Nombre Dangereux de la mission)
-    [SerializeField] string[] nomsFichiers = NomsParDefaut;   // pool de noms (vide = NomsParDefaut)
-    [SerializeField] float tailleFichier = 110f;              // taille maximale d'une icône, en pixels
-    [SerializeField] bool ajusterALaZone = true;              // les icônes prennent la place disponible (jusqu'à Taille Fichier), sans déborder
-    [SerializeField] float espacement = 24f;
-    [SerializeField] float tailleTexte = 14f;
-    [SerializeField] Color couleurTexte = Color.white;
-    [SerializeField] Color couleurSelection = new Color(1f, 0.85f, 0.2f);   // cadre et nom d'un fichier sélectionné
-    [SerializeField] TMP_FontAsset policeNoms;                // optionnel : police des noms (vide = police TMP par défaut)
+    [SerializeField] Sprite spriteFichier;          // optionnel : ton icône de fichier (vide = fichier jaune de la démo)
+    [SerializeField] int nombreVirus = 3;           // virus dans la corbeille
+    [SerializeField] int nombreFichiersBureau = 4;  // fichiers normaux déjà sur le bureau (décor)
+    [SerializeField] string[] nomsVirus = new string[0];   // pool des virus (vide = ceux de MissionCorbeille)
+    [SerializeField] TMP_FontAsset policeNoms;      // optionnel (vide = police TMP par défaut)
 
-    [Header("Disposition (placée par le script)")]
-    [SerializeField] bool gererDisposition = true;            // true = barre en bas, fichiers au-dessus, placés automatiquement
-    [SerializeField] Vector2 tailleBouton = new Vector2(272f, 48f);   // taille de la barre (272×48 = ton sprite 136×24 en 2×)
-    [SerializeField] float margeBouton = 30f;                 // distance entre le bas du panneau et la barre
-    [SerializeField] float marge = 16f;                       // marge autour de la liste des fichiers
-    [SerializeField] string texteBouton = "";                 // texte écrit sur la barre (vide = rien, si ton sprite a déjà son texte)
-    [SerializeField] Vector2 decalageListe = Vector2.zero;    // utilisé seulement si Gerer Disposition est décoché
+    [Header("Corbeille")]
+    [SerializeField] Sprite spriteCorbeille;        // optionnel : ton sprite de corbeille (ex. Trash_m1_0). Vide = corbeille rouge de la démo
 
-    [Header("Barre de confirmation")]
-    [SerializeField] bool exigerTousSelectionnes = true;              // false = un seul fichier suffit
-    [SerializeField] bool afficherCompteur = true;                    // « Sélectionnés : 2 / 4 » (décoche pour ne rien afficher)
-    [SerializeField] PositionCompteur positionCompteur = PositionCompteur.SousLaBarre;
+    [Header("Rythme")]
+    [SerializeField] float delaiEntreVirus = 0.4f;  // un virus ressort toutes les 0,4 s
+    [SerializeField] float delaiFin = 2f;           // temps pour voir « VIRUS RÉINSTALLÉS » avant que le panneau se ferme
 
-    public enum PositionCompteur
-    {
-        SousLaBarre,        // petit texte juste sous la barre
-        AuDessusDeLaBarre,  // petit texte juste au-dessus de la barre
-        SurLaBarre          // écrit sur la barre elle-même, à la suite de Texte Bouton (ex. « CONFIRMER  2 / 4 »)
-    }
-
-    // Place réservée au nom sous l'icône : suit la taille du texte, le nom ne peut plus déborder.
-    float HauteurNom => Mathf.Ceil(tailleTexte * 1.6f) + 6f;
-
-    readonly List<Image> icones = new List<Image>();
-    readonly List<Image> cadres = new List<Image>();      // cadre jaune autour de l'icône sélectionnée (créé en code)
-    readonly List<TMP_Text> etiquettesNom = new List<TMP_Text>();
-    readonly List<bool> selection = new List<bool>();
-    Button boutonConfirmer;
-    TMP_Text compteur;
-    TMP_Text etiquette;
-    bool termine;
+    FenetreDemo fen;
+    RectTransform blocCorbeille, bureau, iconeCorbeilleRt;
+    Image fondCorbeille;
+    Image[] bords;
+    TMP_Text titreCorbeille, appel;
+    RectTransform listeNoms;
+    Button bouton;
+    readonly List<Vector2> places = new List<Vector2>();            // cases du bureau (fixes : rien ne se décale)
+    readonly List<Image> iconesVirus = new List<Image>();
+    readonly List<TMP_Text> textesVirus = new List<TMP_Text>();
+    readonly List<string> dansLaCorbeille = new List<string>();
+    float tailleIcone, hauteurNom, largeurNom;
+    int restaures;
+    bool enCours, termine;
 
     void Awake()
     {
-        // Le pont vers le système de quêtes : ajouté tout seul s'il manque
         if (GetComponent<SabotageBridge>() == null) gameObject.AddComponent<SabotageBridge>();
-
-        if (barreConfirmation != null)
-        {
-            barreConfirmation.raycastTarget = true;
-            boutonConfirmer = barreConfirmation.GetComponent<Button>();
-            if (boutonConfirmer == null) boutonConfirmer = barreConfirmation.gameObject.AddComponent<Button>();
-            boutonConfirmer.transition = Selectable.Transition.None;
-            boutonConfirmer.onClick.AddListener(Confirmer);
-            bool compteurSurLaBarre = afficherCompteur && positionCompteur == PositionCompteur.SurLaBarre;
-            if (afficherCompteur && !compteurSurLaBarre) CreerCompteur();
-            if (!string.IsNullOrEmpty(texteBouton) || compteurSurLaBarre) CreerEtiquette();
-        }
-        else Debug.LogWarning("[Sabotage] Champ Barre Confirmation vide sur " + name);
-
-        if (listeCorbeille != null)
-        {
-            var img = listeCorbeille.GetComponent<Image>();
-            if (img != null) img.raycastTarget = false;
-            var layout = listeCorbeille.GetComponent<LayoutGroup>();
-            if (layout != null) layout.enabled = false;
-        }
-        else Debug.LogWarning("[Sabotage] Champ Liste Corbeille vide sur " + name);
-
         FichierUI.VerifierPolice(policeNoms);
     }
 
     void OnValidate()
     {
-        nombreFichiers = Mathf.Max(1, nombreFichiers);
-        tailleTexte = Mathf.Max(6f, tailleTexte);
-        tailleFichier = Mathf.Max(24f, tailleFichier);
-        tailleBouton = new Vector2(Mathf.Max(40f, tailleBouton.x), Mathf.Max(16f, tailleBouton.y));
-        if (couleurTexte.a < 0.05f) couleurTexte.a = 1f;    // un nom transparent ne sert à rien
+        nombreVirus = Mathf.Max(1, nombreVirus);
+        nombreFichiersBureau = Mathf.Max(0, nombreFichiersBureau);
     }
 
     void OnEnable()
     {
-        termine = false;
-        Disposer();
-        CreerIcones();
-        // La barre passe devant tout le reste du panneau, et reste pleinement visible
-        if (barreConfirmation != null)
-        {
-            barreConfirmation.transform.SetAsLastSibling();
-            var c = barreConfirmation.color; c.a = 1f; barreConfirmation.color = c;
-        }
-        MettreAJourCompteur();
+        enCours = termine = false;
+        restaures = 0;
+        Construire();
     }
 
-    void OnDisable() => DetruireIcones();
-
-    // Barre en bas du panneau, liste des fichiers dans tout l'espace au-dessus : aucun chevauchement possible.
-    void Disposer()
+    void OnDisable()
     {
-        if (!gererDisposition) return;
-        var panneau = transform as RectTransform;
-        if (panneau == null) return;
-
-        float hauteurBarre = 0f;
-        if (barreConfirmation != null)
-        {
-            var b = barreConfirmation.rectTransform;
-            if (b.parent != panneau) b.SetParent(panneau, false);
-            b.anchorMin = b.anchorMax = new Vector2(0.5f, 0f);          // accrochée au bas du panneau, centrée
-            b.pivot = new Vector2(0.5f, 0f);
-            b.anchoredPosition = new Vector2(0f, margeBouton);
-            b.sizeDelta = tailleBouton;
-            barreConfirmation.preserveAspect = true;                     // le sprite n'est pas déformé
-            hauteurBarre = margeBouton + tailleBouton.y;
-            if (compteur != null && positionCompteur == PositionCompteur.AuDessusDeLaBarre) hauteurBarre += 24f;   // place pour le compteur
-        }
-
-        if (listeCorbeille != null)
-        {
-            if (listeCorbeille.parent != panneau) listeCorbeille.SetParent(panneau, false);
-            listeCorbeille.anchorMin = Vector2.zero;                     // étirée sur le panneau…
-            listeCorbeille.anchorMax = Vector2.one;
-            listeCorbeille.pivot = new Vector2(0.5f, 0.5f);
-            listeCorbeille.offsetMin = new Vector2(marge, hauteurBarre + marge);   // …sauf la bande de la barre, en bas
-            listeCorbeille.offsetMax = new Vector2(-marge, -marge);
-        }
+        StopAllCoroutines();
+        if (fen != null) { fen.Detruire(); fen = null; }
+        places.Clear(); iconesVirus.Clear(); textesVirus.Clear(); dansLaCorbeille.Clear();
+        blocCorbeille = null;
     }
 
-    // n noms au hasard dans le pool (noms inventés s'il en manque)
-    string[] Noms
+    // ------------------------------------------------------------------ construction
+    void Construire()
     {
-        get
-        {
-            var pool = new List<string>((nomsFichiers != null && nomsFichiers.Length > 0) ? nomsFichiers : NomsParDefaut);
-            for (int i = pool.Count - 1; i > 0; i--) { int j = Random.Range(0, i + 1); (pool[i], pool[j]) = (pool[j], pool[i]); }
-            int n = Mathf.Max(1, nombreFichiers);
-            var noms = new string[n];
-            for (int i = 0; i < n; i++) noms[i] = i < pool.Count ? pool[i] : "virus_" + (i + 1) + ".exe";
-            return noms;
-        }
+        fen = new FenetreDemo(transform as RectTransform, "Explorateur de fichiers — Sabotage", FenetreDemo.Rouge, policeNoms,
+                              () => QuestSession.Cancel());
+        float K = fen.K;
+
+        // Les virus tirés au hasard
+        var pool = new List<string>((nomsVirus != null && nomsVirus.Length > 0) ? nomsVirus : MissionCorbeille.NomsDangereuxParDefaut);
+        Melanger(pool);
+        for (int i = 0; i < nombreVirus; i++) dansLaCorbeille.Add(i < pool.Count ? pool[i] : "virus_" + (i + 1) + ".exe");
+
+        ConstruireCorbeille(K);
+        ConstruireBureau(K);
+        MajTextes();
     }
 
-    void CreerIcones()
+    void ConstruireCorbeille(float K)
     {
-        DetruireIcones();
-        if (listeCorbeille == null) return;
+        fondCorbeille = FenetreDemo.Img("Corbeille", fen.Corps, FenetreDemo.RougeSombre);
+        fondCorbeille.raycastTarget = true;
+        blocCorbeille = fondCorbeille.rectTransform;
+        blocCorbeille.anchorMin = Vector2.zero; blocCorbeille.anchorMax = new Vector2(0f, 1f); blocCorbeille.pivot = new Vector2(0.5f, 0.5f);
+        blocCorbeille.sizeDelta = new Vector2(220f * K, -40f * K);
+        blocCorbeille.anchoredPosition = new Vector2(110f * K, 20f * K);
 
-        string[] noms = Noms;
-        int n = noms.Length;
-        FichierUI.CalculerGrille(n, listeCorbeille.rect.width, listeCorbeille.rect.height, tailleFichier, espacement, HauteurNom, ajusterALaZone,
-                                 out int colonnes, out float taille);
-        float pasX = taille + espacement;
-        float pasY = taille + HauteurNom + espacement;
+        bouton = blocCorbeille.gameObject.AddComponent<Button>();
+        bouton.targetGraphic = fondCorbeille;
+        var cb = bouton.colors;
+        cb.highlightedColor = new Color(1.45f, 1.3f, 1.3f);       // survol : la corbeille s'éclaire
+        cb.pressedColor = new Color(0.8f, 0.8f, 0.8f);
+        cb.disabledColor = Color.white;
+        cb.colorMultiplier = 1.5f;
+        bouton.colors = cb;
+        bouton.navigation = new Navigation { mode = Navigation.Mode.None };
+        bouton.onClick.AddListener(Restaurer);
+
+        // Contenu empilé : icône, titre, noms des virus, appel au clic
+        var vl = blocCorbeille.gameObject.AddComponent<VerticalLayoutGroup>();
+        vl.childAlignment = TextAnchor.MiddleCenter;
+        vl.spacing = 10f * K;
+        vl.padding = new RectOffset(Mathf.RoundToInt(14f * K), Mathf.RoundToInt(14f * K), Mathf.RoundToInt(12f * K), Mathf.RoundToInt(12f * K));
+        vl.childControlWidth = vl.childControlHeight = true;
+        vl.childForceExpandWidth = true; vl.childForceExpandHeight = false;
+
+        var ic = FenetreDemo.Img("Icone", blocCorbeille, Color.white);
+        ic.sprite = spriteCorbeille != null ? spriteCorbeille : FenetreDemo.SpriteCorbeille();
+        ic.preserveAspect = true;
+        iconeCorbeilleRt = ic.rectTransform;
+        var le = ic.gameObject.AddComponent<LayoutElement>(); le.preferredHeight = le.minHeight = 90f * K;
+
+        titreCorbeille = fen.T("Titre", blocCorbeille, "", 15f, FenetreDemo.Hex("ff9a9a"), FontStyles.Bold, TextAlignmentOptions.Center);
+        titreCorbeille.gameObject.AddComponent<LayoutElement>().preferredHeight = 22f * K;
+
+        // Les noms des virus, chacun dans sa petite étiquette
+        listeNoms = FenetreDemo.R("Noms", blocCorbeille);
+        var vn = listeNoms.gameObject.AddComponent<VerticalLayoutGroup>();
+        vn.spacing = 5f * K; vn.childControlWidth = vn.childControlHeight = true; vn.childForceExpandWidth = true; vn.childForceExpandHeight = false;
+
+        appel = fen.T("Appel", blocCorbeille, "CLIQUE POUR\nRESTAURER", 22f, FenetreDemo.Rouge, FontStyles.Bold, TextAlignmentOptions.Center);
+        appel.gameObject.AddComponent<LayoutElement>().preferredHeight = 56f * K;
+
+        bords = FenetreDemo.Bords(blocCorbeille, 4f * K, FenetreDemo.Rouge);
+    }
+
+    void ConstruireBureau(float K)
+    {
+        bureau = FenetreDemo.R("Bureau", fen.Corps);
+        FenetreDemo.Etirer(bureau, 240f * K, 40f * K, 0f, 0f);
+
+        var titre = fen.T("TitreBureau", bureau, "BUREAU", 13f, FenetreDemo.Gris, FontStyles.Bold, TextAlignmentOptions.TopLeft);
+        var tr = titre.rectTransform;
+        tr.anchorMin = new Vector2(0f, 1f); tr.anchorMax = Vector2.one; tr.pivot = new Vector2(0.5f, 1f);
+        tr.sizeDelta = new Vector2(0f, 22f * K); tr.anchoredPosition = Vector2.zero;
+
+        // Toutes les cases sont calculées d'avance : les fichiers ne bougent jamais
+        int n = nombreFichiersBureau + nombreVirus;
+        hauteurNom = 34f * K;
+        float ecart = 18f * K, bw = bureau.rect.width, bh = bureau.rect.height - 28f * K;
+        FichierUI.CalculerGrille(n, bw, bh, 74f * K, ecart, hauteurNom, true, out int colonnes, out tailleIcone);
+        float pasX = Mathf.Min(tailleIcone + ecart * 2.2f, bw / colonnes), pasY = tailleIcone + hauteurNom + ecart;
+        largeurNom = pasX - 6f * K;
         int lignes = Mathf.CeilToInt(n / (float)colonnes);
-        Vector2 decalage = gererDisposition ? Vector2.zero : decalageListe;
-        Sprite sp = spriteFichier != null ? spriteFichier : MissionCorbeille.IconeParDefaut();
-
+        float centreY = -14f * K;                              // un peu sous le titre « BUREAU »
         for (int i = 0; i < n; i++)
         {
-            int c = i % colonnes, l = i / colonnes, index = i;
-            var go = FichierUI.Creer(listeCorbeille, noms[i], sp, taille, HauteurNom, tailleTexte, couleurTexte, policeNoms, pasX - 4f);
-            var rt = go.GetComponent<RectTransform>();
-            rt.anchoredPosition = decalage + new Vector2((c - (colonnes - 1) / 2f) * pasX, ((lignes - 1) / 2f - l) * pasY);
-            var bouton = go.AddComponent<Button>();
-            bouton.transition = Selectable.Transition.None;
-            bouton.onClick.AddListener(() => Basculer(index));
-            icones.Add(go.transform.Find("Icone").GetComponent<Image>());
-            cadres.Add(FichierUI.AjouterCadre(go, taille, couleurSelection));
-            var nomTxt = go.transform.Find("Nom");
-            etiquettesNom.Add(nomTxt != null ? nomTxt.GetComponent<TMP_Text>() : null);
-            selection.Add(false);
+            int c = i % colonnes, l = i / colonnes;
+            places.Add(new Vector2((c - (colonnes - 1) / 2f) * pasX, centreY + ((lignes - 1) / 2f - l) * pasY));
         }
+
+        // Les fichiers normaux, déjà là
+        var sains = new List<string>(MissionCorbeille.NomsSainsParDefaut);
+        Melanger(sains);
+        for (int i = 0; i < nombreFichiersBureau; i++)
+            CreerFichier(i < sains.Count ? sains[i] : "fichier_" + (i + 1) + ".txt", places[i], false);
     }
 
-    void DetruireIcones()
+    GameObject CreerFichier(string nom, Vector2 position, bool virus)
     {
-        foreach (var i in icones) if (i != null) Destroy(i.transform.parent.gameObject);
-        icones.Clear();
-        cadres.Clear();
-        etiquettesNom.Clear();
-        selection.Clear();
+        Sprite sp = spriteFichier != null ? spriteFichier : FenetreDemo.SpriteFichier();
+        var go = FichierUI.Creer(bureau, nom, sp, tailleIcone, hauteurNom, 15f * fen.K, FenetreDemo.TexteClair, policeNoms, largeurNom);
+        go.GetComponent<RectTransform>().anchoredPosition = position;
+        var ico = go.transform.Find("Icone").GetComponent<Image>();
+        ico.raycastTarget = false;                            // décor : rien à cliquer sur le bureau
+        var t = go.transform.Find("Nom").GetComponent<TMP_Text>();
+        t.text = FenetreDemo.NomAvecExtension(nom);
+        t.fontStyle = FontStyles.Bold;
+        if (virus) { iconesVirus.Add(ico); textesVirus.Add(t); }
+        return go;
     }
 
-    void Basculer(int i)
+    // ------------------------------------------------------------------ le clic
+    void Restaurer()
     {
-        if (termine || i >= selection.Count) return;
-        selection[i] = !selection[i];
-        bool sel = selection[i];
-        // Sélectionné = cadre autour de l'icône + nom en couleur. Sprite Selectionne (optionnel) remplace en plus l'icône.
-        if (spriteSelectionne != null)
-            icones[i].sprite = sel ? spriteSelectionne : (spriteFichier != null ? spriteFichier : MissionCorbeille.IconeParDefaut());
-        else
-            icones[i].color = sel ? Color.Lerp(Color.white, couleurSelection, 0.35f) : Color.white;
-        if (cadres[i] != null) cadres[i].enabled = sel;
-        if (etiquettesNom[i] != null) etiquettesNom[i].color = sel ? couleurSelection : couleurTexte;
-        MettreAJourCompteur();
+        if (enCours || termine || dansLaCorbeille.Count == 0) return;
+        enCours = true;
+        MajTextes();
+        StartCoroutine(SortirLesVirus());
     }
 
-    int NbSelectionnes { get { int k = 0; foreach (var s in selection) if (s) k++; return k; } }
-    bool Pret => exigerTousSelectionnes ? (selection.Count > 0 && NbSelectionnes == selection.Count) : NbSelectionnes > 0;
-
-    // Texte écrit au centre de la barre (seulement si Texte Bouton n'est pas vide)
-    void CreerEtiquette()
+    IEnumerator SortirLesVirus()
     {
-        var go = new GameObject("Etiquette");
-        go.transform.SetParent(barreConfirmation.transform, false);
-        etiquette = go.AddComponent<TextMeshProUGUI>();
-        if (policeNoms != null) etiquette.font = policeNoms;
-        etiquette.text = texteBouton;
-        etiquette.fontSize = tailleTexte + 4f;
-        etiquette.fontStyle = FontStyles.Bold;
-        etiquette.color = couleurTexte;
-        etiquette.alignment = TextAlignmentOptions.Center;
-        etiquette.textWrappingMode = TextWrappingModes.NoWrap;
-        etiquette.overflowMode = TextOverflowModes.Overflow;
-        etiquette.enableAutoSizing = true;
-        etiquette.fontSizeMax = tailleTexte + 4f;
-        etiquette.fontSizeMin = 8f;
-        etiquette.raycastTarget = false;
-        var rt = go.GetComponent<RectTransform>();
-        rt.anchorMin = Vector2.zero;                                    // remplit la barre
-        rt.anchorMax = Vector2.one;
-        rt.offsetMin = new Vector2(8f, 2f);
-        rt.offsetMax = new Vector2(-8f, -2f);
-    }
-
-    // « Sélectionnés : 2 / 4 », petit texte juste sous (ou juste au-dessus de) la barre
-    void CreerCompteur()
-    {
-        var go = new GameObject("Compteur");
-        go.transform.SetParent(barreConfirmation.transform, false);
-        compteur = go.AddComponent<TextMeshProUGUI>();
-        if (policeNoms != null) compteur.font = policeNoms;
-        compteur.fontSize = 12f;
-        compteur.color = couleurTexte;
-        compteur.alignment = TextAlignmentOptions.Center;
-        compteur.textWrappingMode = TextWrappingModes.NoWrap;
-        compteur.overflowMode = TextOverflowModes.Overflow;
-        compteur.raycastTarget = false;
-        var rt = go.GetComponent<RectTransform>();
-        bool dessus = positionCompteur == PositionCompteur.AuDessusDeLaBarre;
-        rt.anchorMin = rt.anchorMax = new Vector2(0.5f, dessus ? 1f : 0f);   // accroché au bord haut ou bas de la barre
-        rt.pivot = new Vector2(0.5f, dessus ? 0f : 1f);
-        rt.anchoredPosition = new Vector2(0f, dessus ? 4f : -4f);
-        rt.sizeDelta = new Vector2(320f, 18f);
-    }
-
-    string Compte => exigerTousSelectionnes ? $"{NbSelectionnes} / {selection.Count}" : $"{NbSelectionnes}";
-
-    void MettreAJourCompteur()
-    {
-        if (!afficherCompteur) return;
-        if (positionCompteur == PositionCompteur.SurLaBarre)
+        while (dansLaCorbeille.Count > 0)
         {
-            if (etiquette != null) etiquette.text = string.IsNullOrEmpty(texteBouton) ? Compte : texteBouton + "  " + Compte;
-        }
-        else if (compteur != null) compteur.text = "Sélectionnés : " + Compte;
-    }
-
-    // Message quand le pirate clique trop tôt : au même endroit que le compteur
-    void AfficherMessage(string texte)
-    {
-        if (positionCompteur == PositionCompteur.SurLaBarre) { if (etiquette != null) etiquette.text = texte; }
-        else if (compteur != null) compteur.text = texte;
-    }
-
-    void Confirmer()
-    {
-        if (termine) return;
-        if (!Pret)
-        {
-            AfficherMessage(exigerTousSelectionnes ? $"Sélectionne tous les fichiers ({Compte})" : "Sélectionne au moins un fichier");
-            return;
+            string nom = dansLaCorbeille[0];
+            dansLaCorbeille.RemoveAt(0);
+            var go = CreerFichier(nom, places[nombreFichiersBureau + restaures], true);
+            restaures++;
+            MajTextes();
+            fen.Message($"<b>{nom}</b> réinstallé sur le bureau…", true, delaiEntreVirus + 0.3f);
+            Sons.Jouer("branche", 0.9f, 0.8f + 0.1f * restaures);
+            StartCoroutine(Pop(go.transform));
+            StartCoroutine(Crache());
+            yield return new WaitForSecondsRealtime(delaiEntreVirus);
         }
         termine = true;
-        SabotageBridge.Reussite();                                  // le serveur annule la dernière mission
+        MajTextes();
+        yield return new WaitForSecondsRealtime(0.4f);
+        fen.Victoire(this, "VIRUS RÉINSTALLÉS", FenetreDemo.Rouge,
+                     "La mission de ce bureau est annulée : un informaticien devra la refaire.", -1);
+        yield return new WaitForSecondsRealtime(delaiFin);
+        SabotageBridge.Reussite();                            // le serveur annule la mission de ce bureau
+    }
+
+    IEnumerator Pop(Transform t)
+    {
+        for (float k = 0f; k < 0.35f; k += Time.unscaledDeltaTime)
+        {
+            if (t == null) yield break;
+            float u = k / 0.35f;
+            float s = u < 0.7f ? Mathf.Lerp(0.4f, 1.12f, u / 0.7f) : Mathf.Lerp(1.12f, 1f, (u - 0.7f) / 0.3f);
+            t.localScale = Vector3.one * s;
+            yield return null;
+        }
+        if (t != null) t.localScale = Vector3.one;
+    }
+
+    IEnumerator Crache()                                      // la corbeille saute à chaque virus
+    {
+        for (float k = 0f; k < 0.3f; k += Time.unscaledDeltaTime)
+        {
+            if (iconeCorbeilleRt == null) yield break;
+            float u = Mathf.Sin(k / 0.3f * Mathf.PI);
+            iconeCorbeilleRt.localRotation = Quaternion.Euler(0f, 0f, -10f * u);
+            iconeCorbeilleRt.localScale = Vector3.one * (1f + 0.12f * u);
+            yield return null;
+        }
+        if (iconeCorbeilleRt == null) yield break;
+        iconeCorbeilleRt.localRotation = Quaternion.identity;
+        iconeCorbeilleRt.localScale = Vector3.one;
+    }
+
+    void MajTextes()
+    {
+        if (fen == null) return;
+        float K = fen.K;
+        titreCorbeille.text = $"CORBEILLE · {dansLaCorbeille.Count}";
+
+        // les étiquettes des noms encore dans la corbeille
+        for (int i = listeNoms.childCount - 1; i >= 0; i--) Destroy(listeNoms.GetChild(i).gameObject);
+        foreach (var nom in dansLaCorbeille)
+        {
+            var et = FenetreDemo.Img("Etiquette", listeNoms, new Color(0f, 0f, 0f, 0.35f));
+            et.gameObject.AddComponent<LayoutElement>().preferredHeight = 24f * K;
+            var t = fen.T("Nom", et.transform, nom, 13f, FenetreDemo.Hex("ffc2c2"), FontStyles.Bold, TextAlignmentOptions.Center);
+            FenetreDemo.Etirer(t.rectTransform, 4f * K, 0f, 4f * K, 0f);
+        }
+
+        appel.gameObject.SetActive(!enCours && !termine);
+        fen.Progression(restaures, nombreVirus, $"Virus restaurés : {restaures} / {nombreVirus}");
+    }
+
+    // Pulsation de la corbeille (tant qu'on n'a pas cliqué) et clignotement des virus restaurés
+    void Update()
+    {
+        if (fen == null) return;
+        fen.Maj();
+        float p = 0.5f + 0.5f * Mathf.Sin(Time.unscaledTime * Mathf.PI * 1.8f);
+        bool attend = !enCours && !termine;
+        Color bord = attend ? Color.Lerp(FenetreDemo.Rouge, Color.white, 0.3f * p) : FenetreDemo.RougeBord;
+        foreach (var b in bords) if (b != null) b.color = bord;
+        blocCorbeille.localScale = Vector3.one * (attend ? 1f + 0.02f * p : 1f);
+        if (appel != null) appel.color = Color.Lerp(FenetreDemo.Rouge, new Color(1f, 0.75f, 0.75f), p);
+        if (bouton != null) bouton.interactable = attend;
+
+        bool rouge = Mathf.Repeat(Time.unscaledTime, 0.5f) < 0.25f;
+        for (int i = 0; i < iconesVirus.Count; i++)
+        {
+            if (iconesVirus[i] != null) iconesVirus[i].color = rouge ? new Color(1f, 0.35f, 0.35f) : Color.white;
+            if (textesVirus[i] != null) textesVirus[i].color = FenetreDemo.Rouge;
+        }
+    }
+
+    static void Melanger<T>(List<T> l)
+    {
+        for (int i = l.Count - 1; i > 0; i--) { int j = Random.Range(0, i + 1); (l[i], l[j]) = (l[j], l[i]); }
     }
 }

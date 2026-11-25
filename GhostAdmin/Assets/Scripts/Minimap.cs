@@ -9,7 +9,7 @@ using UnityEngine.UI;
 // AUCUN OBJET À CRÉER : créé tout seul chez chaque joueur (voir QuestProgress / PlayerQuests).
 // Minimap en haut à gauche : une photo de la carte (prise au démarrage, sans les joueurs), et par-dessus :
 //   • moi (point à ma couleur, en direct) ;
-//   • mes quêtes à faire (carrés jaunes) — pour le pirate : les missions réalisées (carrés rouges) ;
+//   • mes quêtes à faire (ronds jaunes avec une onde « radar ») — pour le pirate : les missions réalisées (ronds rouges) ;
 //   • les autres joueurs : là où je les ai VUS pour la dernière fois (point à leur couleur), qui s'efface
 //     pendant Duree Trace secondes. « Vu » = il était dans mon écran.
 // Optionnel : un objet « MinimapBounds » avec un BoxCollider2D dans la scène fixe la zone photographiée.
@@ -23,7 +23,8 @@ public class Minimap : MonoBehaviour
     const float VitesseClignotement = 5f;               // clignotement des quêtes et des sabotages
     const int Resolution = 512;                          // finesse de la photo de la carte
     const float DureeTrace = 20f;                        // secondes pendant lesquelles la dernière position vue reste affichée
-    const float TailleQuete = 9f, TailleMoi = 11f, TailleAutre = 9f;
+    const float TailleQuete = 12f, TailleMoi = 11f, TailleAutre = 9f;
+    const float DureeOnde = 1.4f;                        // une onde part de chaque quête toutes les 1,4 s
     static readonly Color Fond = new Color(0f, 0f, 0f, 0.6f);
     static readonly Color Cadre = new Color(1f, 1f, 1f, 0.25f);
     static readonly Color CouleurQueteInfo = Color.yellow;
@@ -47,7 +48,9 @@ public class Minimap : MonoBehaviour
     float echelleMarqueurs = 1f;
 
     RectTransform moi;
-    readonly Dictionary<Interactable, RectTransform> quetes = new Dictionary<Interactable, RectTransform>();
+    // Un repère de quête : une onde qui s'agrandit, un contour sombre, le rond coloré et un reflet
+    class MarqueQuete { public RectTransform racine; public Image onde, contour, point, reflet; public float decalage; }
+    readonly Dictionary<Interactable, MarqueQuete> quetes = new Dictionary<Interactable, MarqueQuete>();
     class Trace { public RectTransform marqueur; public Vector3 position; public float vuA = -999f; }
     readonly Dictionary<uint, Trace> traces = new Dictionary<uint, Trace>();
     Interactable[] objets = new Interactable[0];
@@ -273,6 +276,35 @@ public class Minimap : MonoBehaviour
         return r;
     }
 
+    MarqueQuete MarqueurQuete(int index)
+    {
+        var m = new MarqueQuete { decalage = (index * 0.37f) % 1f };   // les ondes ne partent pas toutes en même temps
+        var go = new GameObject("Quete", typeof(RectTransform));
+        go.transform.SetParent(carte, false);
+        m.racine = go.GetComponent<RectTransform>();
+        m.racine.anchorMin = m.racine.anchorMax = m.racine.pivot = new Vector2(0.5f, 0.5f);
+        m.racine.sizeDelta = Vector2.one * TailleQuete;
+        m.onde = Partie("Onde", m.racine, SpriteAnneau());
+        m.contour = Partie("Contour", m.racine, SpriteRond());
+        m.contour.color = new Color(0.05f, 0.05f, 0.08f, 0.95f);
+        m.point = Partie("Point", m.racine, SpriteRond());
+        m.reflet = Partie("Reflet", m.racine, SpriteRond());
+        m.reflet.color = new Color(1f, 1f, 1f, 0.7f);
+        return m;
+    }
+
+    static Image Partie(string nom, Transform parent, Sprite sprite)
+    {
+        var go = new GameObject(nom, typeof(RectTransform));
+        go.transform.SetParent(parent, false);
+        var img = go.AddComponent<Image>();
+        img.sprite = sprite;
+        img.raycastTarget = false;
+        var r = img.rectTransform;
+        r.anchorMin = r.anchorMax = r.pivot = new Vector2(0.5f, 0.5f);
+        return img;
+    }
+
     Vector2 VersCarte(Vector3 monde)
     {
         float u = Mathf.Clamp01((monde.x - bornes.min.x) / Mathf.Max(0.001f, bornes.size.x));
@@ -326,7 +358,7 @@ public class Minimap : MonoBehaviour
             neige.transform.SetAsLastSibling();
             if (Time.unscaledTime >= prochaineNeige) { RemplirNeige(); prochaineNeige = Time.unscaledTime + 0.08f; }
             moi.gameObject.SetActive(false);
-            foreach (var m in quetes.Values) if (m != null) m.gameObject.SetActive(false);
+            foreach (var m in quetes.Values) if (m != null && m.racine != null) m.racine.gameObject.SetActive(false);
             foreach (var t in traces.Values) if (t.marqueur != null) t.marqueur.gameObject.SetActive(false);
             return;
         }
@@ -344,20 +376,32 @@ public class Minimap : MonoBehaviour
             bool montrer = pirate
                 ? (progress != null && progress.EstFaite(it.questId) && it.sabotagePanel != null)
                 : (local.IsAssigned(it.questId) && !local.IsDone(it.questId));
-            if (!quetes.TryGetValue(it, out var m) || m == null)
+            if (!quetes.TryGetValue(it, out var m) || m == null || m.racine == null)
             {
-                m = Marqueur("Quete", CouleurQueteInfo, TailleQuete);
-                m.GetComponent<Image>().sprite = null;                 // carré
+                m = MarqueurQuete(quetes.Count);
                 quetes[it] = m;
             }
-            m.gameObject.SetActive(montrer);
+            m.racine.gameObject.SetActive(montrer);
             if (!montrer) continue;
-            m.anchoredPosition = VersCarte(it.transform.position);
+            m.racine.anchoredPosition = VersCarte(it.transform.position);
             var couleurQ = pirate ? CouleurQuetePirate : CouleurQueteInfo;
-            couleurQ.a = Mathf.Lerp(0.35f, 1f, pulsation);
-            m.GetComponent<Image>().color = couleurQ;
-            m.sizeDelta = Vector2.one * TailleQuete * echelleMarqueurs * Mathf.Lerp(0.9f, 1.5f, pulsation);
+            float s = TailleQuete * echelleMarqueurs;
+
+            // L'onde : part du rond, grandit et s'efface (comme un radar)
+            float phase = Mathf.Repeat(Time.time / DureeOnde + m.decalage, 1f);
+            m.onde.rectTransform.sizeDelta = Vector2.one * s * Mathf.Lerp(1f, 3.2f, phase);
+            m.onde.color = new Color(couleurQ.r, couleurQ.g, couleurQ.b, (1f - phase) * 0.9f);
+
+            // Le rond : bien plein, avec un contour sombre, qui « respire » un peu
+            float k = Mathf.Lerp(1f, 1.2f, pulsation);
+            m.contour.rectTransform.sizeDelta = Vector2.one * (s * k + 4f * echelleMarqueurs);
+            m.point.rectTransform.sizeDelta = Vector2.one * s * k;
+            m.point.color = Color.Lerp(couleurQ, Color.white, 0.2f * pulsation);
+            m.reflet.rectTransform.sizeDelta = Vector2.one * s * k * 0.35f;
+            m.reflet.rectTransform.anchoredPosition = new Vector2(-0.18f, 0.18f) * s * k;
+            m.racine.SetAsLastSibling();                               // au-dessus des traces des autres joueurs
         }
+        moi.SetAsLastSibling();                                        // moi, toujours tout en haut
 
         // Les autres : dernière position où je les ai vus
         var camJeu = CameraDuJeu();
@@ -404,6 +448,27 @@ public class Minimap : MonoBehaviour
             if (!existe) disparus.Add(kv.Key);
         }
         foreach (var id in disparus) { if (traces[id].marqueur != null) Destroy(traces[id].marqueur.gameObject); traces.Remove(id); }
+    }
+
+    // Un anneau blanc (l'onde des quêtes)
+    static Sprite anneau;
+    static Sprite SpriteAnneau()
+    {
+        if (anneau != null) return anneau;
+        int n = 64;
+        var tex = new Texture2D(n, n, TextureFormat.RGBA32, false) { filterMode = FilterMode.Bilinear };
+        var px = new Color32[n * n];
+        float c = (n - 1) / 2f, rExt = n / 2f - 1f, ep = 5f;
+        for (int y = 0; y < n; y++)
+            for (int x = 0; x < n; x++)
+            {
+                float d = Mathf.Sqrt((x - c) * (x - c) + (y - c) * (y - c));
+                float dedans = Mathf.Clamp01(rExt - d + 0.5f) * Mathf.Clamp01(d - (rExt - ep) + 0.5f);
+                px[y * n + x] = new Color32(255, 255, 255, (byte)(dedans * 255f));
+            }
+        tex.SetPixels32(px); tex.Apply();
+        anneau = Sprite.Create(tex, new Rect(0, 0, n, n), new Vector2(0.5f, 0.5f), 100f);
+        return anneau;
     }
 
     // Un rond blanc, pour les joueurs

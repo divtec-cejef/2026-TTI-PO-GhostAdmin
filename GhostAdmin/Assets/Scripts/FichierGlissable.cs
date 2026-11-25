@@ -6,10 +6,13 @@ using UnityEngine.UI;
 // CRÉÉ EN CODE par MissionCorbeille : une icône de fichier (avec son nom) qu'on glisse à la souris.
 // Dangereux = doit finir dans la corbeille. Un fichier sain lâché sur la corbeille est refusé (flash rouge).
 [RequireComponent(typeof(CanvasGroup))]
-public class FichierGlissable : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDragHandler
+public class FichierGlissable : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDragHandler, IPointerEnterHandler, IPointerExitHandler
 {
     public bool Dangereux { get; private set; }
     public bool Jete { get; private set; }
+    public string Nom { get; set; }
+    public bool EnGlisse { get; private set; }                         // en train d'être traîné à la souris                                   // le nom affiché (ex. virus.exe)
+    public System.Action<FichierGlissable, bool> Survol;              // la souris entre (true) / sort (false)
 
     RectTransform rect;
     CanvasGroup groupe;
@@ -33,9 +36,13 @@ public class FichierGlissable : MonoBehaviour, IBeginDragHandler, IDragHandler, 
         if (ico != null) { icone = ico.GetComponent<Image>(); if (icone != null) couleurIcone = icone.color; }
     }
 
+    public void OnPointerEnter(PointerEventData e) { if (!Jete) Survol?.Invoke(this, true); }
+    public void OnPointerExit(PointerEventData e) { Survol?.Invoke(this, false); }
+
     public void OnBeginDrag(PointerEventData e)
     {
         if (Jete) return;
+        EnGlisse = true;
         groupe.blocksRaycasts = false;          // laisse la souris « voir » la corbeille sous le fichier
         transform.SetParent(racineDrag, true);
         transform.SetAsLastSibling();
@@ -49,6 +56,7 @@ public class FichierGlissable : MonoBehaviour, IBeginDragHandler, IDragHandler, 
 
     public void OnEndDrag(PointerEventData e)
     {
+        EnGlisse = false;
         groupe.blocksRaycasts = true;
         if (Jete) return;
         transform.SetParent(zone, true);        // lâché à côté, ou refusé : retour à sa place
@@ -58,6 +66,8 @@ public class FichierGlissable : MonoBehaviour, IBeginDragHandler, IDragHandler, 
     public void MarquerJete()
     {
         Jete = true;
+        EnGlisse = false;
+        Survol?.Invoke(this, false);
         groupe.blocksRaycasts = true;
         gameObject.SetActive(false);
     }

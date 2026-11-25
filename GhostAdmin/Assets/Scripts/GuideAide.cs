@@ -201,16 +201,16 @@ public class GuideAide : MonoBehaviour
         {
             cle = "sabotage-fichiers";
             titre = "Sabotage : restaurer les virus";
-            texte = "Un informaticien a jeté des virus à la corbeille. Remets-les en place !\n"
-                  + "1. Clique sur chaque fichier pour le sélectionner (il s'encadre en jaune).\n"
-                  + "2. Clique sur la barre de confirmation, en bas.\n"
+            texte = "Un informaticien a jeté 3 virus à la corbeille. Remets-les en place !\n"
+                  + "1. Clique sur la corbeille rouge, à gauche.\n"
+                  + "2. Les virus ressortent tout seuls sur le bureau.\n"
                   + "La mission de ce bureau sera annulée : il faudra la refaire.";
         }
         else if (panneau.GetComponentInChildren<MissionCorbeille>(true) != null)
         {
             cle = "fichiers";
             titre = "Nettoyer l'ordinateur";
-            texte = "Des fichiers dangereux se cachent parmi les fichiers normaux.\n"
+            texte = "4 fichiers dangereux se cachent parmi les fichiers normaux. Survole un fichier pour voir son type.\n"
                   + "1. Lis le nom de chaque fichier : .exe, .bat, .dll, .js, .vbs ou .sh, c'est suspect.\n"
                   + "2. Glisse les fichiers dangereux dans la corbeille rouge.\n"
                   + "3. Laisse les autres : la corbeille refuse les fichiers sains.";
@@ -345,7 +345,9 @@ public class GuideAide : MonoBehaviour
     // Le coin où se met le guide ; la bulle s'ouvre vers le centre de l'écran.
     void Placer(AideQuete.Position position)
     {
-        if (position == AideQuete.Position.Automatique) position = AideQuete.Position.BasGauche;
+        // En bas à gauche, sauf si le bouton DDoS du pirate y est déjà : le guide passe alors en bas à droite
+        if (position == AideQuete.Position.Automatique)
+            position = HackReseauUI.BoutonVisible ? AideQuete.Position.BasDroite : AideQuete.Position.BasGauche;
         bool droite = position == AideQuete.Position.BasDroite || position == AideQuete.Position.HautDroite;
         bool haut = position == AideQuete.Position.HautGauche || position == AideQuete.Position.HautDroite;
 
